@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "buffer.h"
+#include "slice.h"
 
 static void test_buffer1(void)
 {
@@ -96,16 +97,16 @@ static void test_buffer3(void)
     assert(buffer->end == buffer->buf + 78);
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "GET /index.html HTTP/1.0\r\n", line.end - line.begin));
+    assert(!memcmp(line.begin, "GET /index.html HTTP/1.0\r\n", slice_len(&line)));
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "Host: www.example.com\r\n", line.end - line.begin));
+    assert(!memcmp(line.begin, "Host: www.example.com\r\n", slice_len(&line)));
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "User-Agent: TestAgent/1.0\r\n", line.end - line.begin));
+    assert(!memcmp(line.begin, "User-Agent: TestAgent/1.0\r\n", slice_len(&line)));
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "\r\n", line.end - line.begin));
+    assert(!memcmp(line.begin, "\r\n", slice_len(&line)));
 
     line = http_buffer_next_line(buffer);
     assert(!line.begin);
@@ -126,7 +127,7 @@ static void test_buffer4(void)
     assert(buffer->end == buffer->buf + 35);
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "GET /index.html HTTP/1.0\r\n", line.end - line.begin));
+    assert(!memcmp(line.begin, "GET /index.html HTTP/1.0\r\n", slice_len(&line)));
 
     line = http_buffer_next_line(buffer);
     assert(!line.begin);
@@ -138,13 +139,13 @@ static void test_buffer4(void)
     assert(buffer->end == buffer->buf + 52);
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "Host: www.example.com\r\n", line.end - line.begin));
+    assert(!memcmp(line.begin, "Host: www.example.com\r\n", slice_len(&line)));
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "User-Agent: TestAgent/1.0\r\n", line.end - line.begin));
+    assert(!memcmp(line.begin, "User-Agent: TestAgent/1.0\r\n", slice_len(&line)));
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "\r\n", line.end - line.begin));
+    assert(!memcmp(line.begin, "\r\n", slice_len(&line)));
 
     line = http_buffer_next_line(buffer);
     assert(!line.begin);

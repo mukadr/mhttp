@@ -6,6 +6,11 @@ typedef struct HttpSlice {
     char *end; // 1 after the last valid byte
 } HttpSlice;
 
+static inline size_t slice_len(const HttpSlice *slice)
+{
+    return slice->end - slice->begin;
+}
+
 static inline int slice_next(HttpSlice *slice)
 {
     if (slice->begin == slice->end) {

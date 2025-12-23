@@ -7,7 +7,7 @@ void http_request_parse(HttpRequest *request, HttpBuffer *buffer)
 {
     HttpSlice line = http_buffer_next_line(buffer);
 
-    if (line.end - line.begin < 4) {
+    if (slice_len(&line) < 4) {
         request->method = HTTP_UNKNOWN;
         return;
     }
