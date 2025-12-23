@@ -6,7 +6,7 @@
 typedef struct HttpBuffer {
     size_t size;
     char *read;
-    char *write;
+    char *end;
     char buf[];
 } HttpBuffer;
 
@@ -26,7 +26,7 @@ HttpBuffer *http_buffer_new(size_t size)
 
     buffer->size = size;
     buffer->read = buffer->buf;
-    buffer->write = buffer->buf;
+    buffer->end = buffer->buf;
 
     return buffer;
 }
@@ -41,7 +41,7 @@ size_t http_buffer_fill(HttpBuffer *buffer, const char *s)
     memcpy(buffer->buf, s, len);
 
     buffer->read = buffer->buf;
-    buffer->write = buffer->buf + len;
+    buffer->end = buffer->buf + len;
 
     return len;
 }
@@ -55,7 +55,7 @@ HttpSlice http_buffer_next_line(HttpBuffer *buffer)
 {
     HttpSlice line = { NULL, NULL };
 
-    char *ptr = memchr(buffer->read, '\n', buffer->write - buffer->read);
+    char *ptr = memchr(buffer->read, '\n', buffer->end - buffer->read);
     if (ptr) {
         line.begin = buffer->read;
         line.end = ptr + 1;
@@ -74,7 +74,7 @@ void test_buffer1(void)
     ret = http_buffer_fill(buffer, "abc");
     assert(ret == 1);
     assert(buffer->read == buffer->buf);
-    assert(buffer->write == buffer->buf + 1);
+    assert(buffer->end == buffer->buf + 1);
 
     line = http_buffer_next_line(buffer);
     assert(line.begin == NULL);
@@ -83,7 +83,7 @@ void test_buffer1(void)
     ret = http_buffer_fill(buffer, "\n");
     assert(ret == 1);
     assert(buffer->read == buffer->buf);
-    assert(buffer->write == buffer->buf + 1);
+    assert(buffer->end == buffer->buf + 1);
 
     line = http_buffer_next_line(buffer);
     assert(line.begin == buffer->buf);
@@ -105,7 +105,7 @@ void test_buffer2(void)
     ret = http_buffer_fill(buffer, "abc");
     assert(ret == 2);
     assert(buffer->read == buffer->buf);
-    assert(buffer->write == buffer->buf + 2);
+    assert(buffer->end == buffer->buf + 2);
 
     line = http_buffer_next_line(buffer);
     assert(line.begin == NULL);
@@ -114,7 +114,7 @@ void test_buffer2(void)
     ret = http_buffer_fill(buffer, "a\n");
     assert(ret == 2);
     assert(buffer->read == buffer->buf);
-    assert(buffer->write == buffer->buf + 2);
+    assert(buffer->end == buffer->buf + 2);
 
     line = http_buffer_next_line(buffer);
     assert(line.begin == buffer->buf);
@@ -127,7 +127,7 @@ void test_buffer2(void)
     ret = http_buffer_fill(buffer, "\n\n");
     assert(ret == 2);
     assert(buffer->read == buffer->buf);
-    assert(buffer->write == buffer->buf + 2);
+    assert(buffer->end == buffer->buf + 2);
 
     line = http_buffer_next_line(buffer);
     assert(line.begin == buffer->buf);
@@ -153,7 +153,7 @@ void test_buffer3(void)
     ret = http_buffer_fill(buffer, "GET /index.html HTTP/1.0\r\nHost: www.example.com\r\nUser-Agent: TestAgent/1.0\r\n\r\n");
     assert(ret == 78);
     assert(buffer->read == buffer->buf);
-    assert(buffer->write == buffer->buf + 78);
+    assert(buffer->end == buffer->buf + 78);
 
     line = http_buffer_next_line(buffer);
     assert(!memcmp(line.begin, "GET /index.html HTTP/1.0\r\n", line.end - line.begin));
