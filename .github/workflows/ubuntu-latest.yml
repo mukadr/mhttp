@@ -15,7 +15,11 @@ jobs:
     - uses: actions/checkout@v4
     - name: make with gcc
       run: make CC=gcc
+    - name: run tests
+      run: make check
     - name: clean
       run: make clean
     - name: make with clang
       run: make CC=clang
+    - name: run tests
+      run: make check

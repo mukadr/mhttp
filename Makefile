@@ -3,7 +3,7 @@ CFLAGS = -O2 -Wall
 
 .PHONY: all check clean
 
-all: check
+all: test
 
 check: test
 	./test
