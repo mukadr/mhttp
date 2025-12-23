@@ -1,3 +1,4 @@
+CC ?= gcc
 CFLAGS = -O2 -Wall
 
 .PHONY: all check clean
@@ -8,16 +9,16 @@ check: test
 	./test
 
 test: test.o test-buffer.o buffer.o
-	gcc $^ -o test
+	$(CC) $^ -o test
 
 test.o: test.c
-	gcc $^ -c $(CFLAGS)
+	$(CC) $^ -c $(CFLAGS)
 
 test-buffer.o: test-buffer.c
-	gcc $^ -c $(CFLAGS)
+	$(CC) $^ -c $(CFLAGS)
 
 buffer.o: buffer.c
-	gcc $^ -c $(CFLAGS)
+	$(CC) $^ -c $(CFLAGS)
 
 clean:
 	rm -f *.o test
