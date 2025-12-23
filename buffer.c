@@ -20,6 +20,11 @@ HttpBuffer *http_buffer_new(size_t size)
     return buffer;
 }
 
+void http_buffer_free(HttpBuffer *buffer)
+{
+    free(buffer);
+}
+
 size_t http_buffer_fill(HttpBuffer *buffer, const char *s)
 {
     size_t remaining = buffer->end - buffer->pos;
@@ -45,11 +50,6 @@ size_t http_buffer_fill(HttpBuffer *buffer, const char *s)
     buffer->end = buffer->buf + remaining + len;
 
     return len;
-}
-
-void http_buffer_free(HttpBuffer *buffer)
-{
-    free(buffer);
 }
 
 HttpSlice http_buffer_next_line(HttpBuffer *buffer)
