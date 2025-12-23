@@ -26,7 +26,7 @@ void http_buffer_free(HttpBuffer *buffer)
     free(buffer);
 }
 
-size_t http_buffer_fill(HttpBuffer *buffer, const char *s)
+size_t http_buffer_concat(HttpBuffer *buffer, const char *s)
 {
     size_t remaining = buffer->end - buffer->pos;
     size_t available = buffer->size - remaining;
