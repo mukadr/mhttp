@@ -33,15 +33,27 @@ HttpBuffer *http_buffer_new(size_t size)
 
 size_t http_buffer_fill(HttpBuffer *buffer, const char *s)
 {
-    size_t len = strlen(s);
-    if (len > buffer->size) {
-        len = buffer->size;
+    size_t remaining = buffer->end - buffer->pos;
+    size_t available = buffer->size - remaining;
+
+    if (available > 0) {
+        memmove(buffer->buf, buffer->pos, remaining);
+    } else {
+        // If there's no space left, discard the existing data, since the line is greater than buffer size
+        // In this situation we should return BAD REQUEST
+        available = buffer->size;
+        remaining = 0;
     }
 
-    memcpy(buffer->buf, s, len);
+    size_t len = strlen(s);
+    if (len > available) {
+        len = available;
+    }
+
+    memcpy(buffer->buf + remaining, s, len);
 
     buffer->pos = buffer->buf;
-    buffer->end = buffer->buf + len;
+    buffer->end = buffer->buf + remaining + len;
 
     return len;
 }
@@ -174,11 +186,51 @@ void test_buffer3(void)
     http_buffer_free(buffer);
 }
 
+void test_buffer4(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpSlice line;
+    size_t ret;
+
+    ret = http_buffer_fill(buffer, "GET /index.html HTTP/1.0\r\nHost: www");
+    assert(ret == 35);
+    assert(buffer->pos == buffer->buf);
+    assert(buffer->end == buffer->buf + 35);
+
+    line = http_buffer_next_line(buffer);
+    assert(!memcmp(line.begin, "GET /index.html HTTP/1.0\r\n", line.end - line.begin));
+
+    line = http_buffer_next_line(buffer);
+    assert(line.begin == NULL);
+    assert(line.end == NULL);
+
+    ret = http_buffer_fill(buffer, ".example.com\r\nUser-Agent: TestAgent/1.0\r\n\r\n");
+    assert(ret == 43);
+    assert(buffer->pos == buffer->buf);
+    assert(buffer->end == buffer->buf + 52);
+
+    line = http_buffer_next_line(buffer);
+    assert(!memcmp(line.begin, "Host: www.example.com\r\n", line.end - line.begin));
+
+    line = http_buffer_next_line(buffer);
+    assert(!memcmp(line.begin, "User-Agent: TestAgent/1.0\r\n", line.end - line.begin));
+
+    line = http_buffer_next_line(buffer);
+    assert(!memcmp(line.begin, "\r\n", line.end - line.begin));
+
+    line = http_buffer_next_line(buffer);
+    assert(line.begin == NULL);
+    assert(line.end == NULL);
+
+    http_buffer_free(buffer);
+}
+
 int main()
 {
     test_buffer1();
     test_buffer2();
     test_buffer3();
+    test_buffer4();
 
     return 0;
 }
