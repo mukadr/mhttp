@@ -21,8 +21,8 @@ static inline int slice_next(HttpSlice *slice)
 
 static inline void slice_advance(HttpSlice *slice, int n)
 {
-    if (n > slice->end - slice->begin) {
-        n = slice->end - slice->begin;
+    if (n > slice_len(slice)) {
+        n = slice_len(slice);
     }
     slice->begin += n;
 }
