@@ -6,7 +6,7 @@
 typedef struct HttpBuffer {
     size_t size;
     char *pos;
-    char *end;
+    char *end; // 1 after the last valid byte
     char buf[];
 } HttpBuffer;
 
