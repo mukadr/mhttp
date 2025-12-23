@@ -58,7 +58,6 @@ HttpSlice http_buffer_next_line(HttpBuffer *buffer)
         line.begin = buffer->read;
         line.end = ptr + 1;
         buffer->read = ptr + 1;
-        return line;
     }
 
     return line;
