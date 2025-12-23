@@ -3,10 +3,8 @@
 #include "request.h"
 #include "buffer.h"
 
-void http_request_parse(HttpRequest *request, HttpBuffer *buffer)
+static void http_request_parse_method(HttpRequest *request, HttpSlice line)
 {
-    HttpSlice line = http_buffer_next_line(buffer);
-
     if (slice_len(&line) < 4) {
         request->method = HTTP_UNKNOWN;
         return;
@@ -37,4 +35,16 @@ void http_request_parse(HttpRequest *request, HttpBuffer *buffer)
     } else {
         request->method = HTTP_UNKNOWN;
     }
+}
+
+bool http_request_parse(HttpRequest *request, HttpBuffer *buffer)
+{
+    HttpSlice line = http_buffer_next_line(buffer);
+
+    if (!slice_len(&line)) {
+        return false;
+    }
+
+    http_request_parse_method(request, line);
+    return true;
 }
