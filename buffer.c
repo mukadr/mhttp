@@ -6,16 +6,17 @@
 
 HttpBuffer *http_buffer_new(size_t size)
 {
+    HttpBuffer *buffer;
+
     assert(size > 0);
 
-    HttpBuffer *buffer = malloc(sizeof(HttpBuffer) + size);
-    if (!buffer) {
-        return NULL;
-    }
+    buffer = malloc(sizeof(*buffer) + size);
 
-    buffer->size = size;
-    buffer->pos = buffer->buf;
-    buffer->end = buffer->buf;
+    if (buffer) {
+        buffer->size = size;
+        buffer->pos = buffer->buf;
+        buffer->end = buffer->buf;
+    }
 
     return buffer;
 }
@@ -54,7 +55,7 @@ size_t http_buffer_fill(HttpBuffer *buffer, const char *s)
 
 HttpSlice http_buffer_next_line(HttpBuffer *buffer)
 {
-    HttpSlice line = { NULL, NULL };
+    HttpSlice line = { 0 };
 
     char *ptr = memchr(buffer->pos, '\n', buffer->end - buffer->pos);
     if (ptr) {
