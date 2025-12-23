@@ -16,8 +16,11 @@ typedef struct HttpSlice {
 } HttpSlice;
 
 HttpBuffer *http_buffer_new(size_t size);
-size_t http_buffer_fill(HttpBuffer *buffer, const char *s);
+
 void http_buffer_free(HttpBuffer *buffer);
+
+size_t http_buffer_fill(HttpBuffer *buffer, const char *s);
+
 HttpSlice http_buffer_next_line(HttpBuffer *buffer);
 
 #endif // MHTTP_BUFFER_H
