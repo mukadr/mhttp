@@ -8,7 +8,7 @@ all: test
 check: test
 	./test
 
-test: test.o test-buffer.o buffer.o
+test: test.o test-buffer.o test-request.o buffer.o request.o
 	$(CC) $^ -o test
 
 test.o: test.c
@@ -17,7 +17,13 @@ test.o: test.c
 test-buffer.o: test-buffer.c
 	$(CC) $^ -c $(CFLAGS)
 
+test-request.o: test-request.c
+	$(CC) $^ -c $(CFLAGS)
+
 buffer.o: buffer.c
+	$(CC) $^ -c $(CFLAGS)
+
+request.o: request.c
 	$(CC) $^ -c $(CFLAGS)
 
 clean:
