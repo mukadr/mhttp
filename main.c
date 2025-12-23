@@ -17,6 +17,8 @@ typedef struct HttpSlice {
 
 HttpBuffer *http_buffer_new(size_t size)
 {
+    assert(size > 0);
+
     HttpBuffer *buffer = malloc(sizeof(HttpBuffer) + size);
     if (!buffer) {
         return NULL;
