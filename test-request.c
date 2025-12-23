@@ -12,21 +12,15 @@ void test_request1(void)
     HttpRequest request;
 
     http_buffer_concat(buffer, "BLA\n");
-
     http_request_parse(&request, buffer);
-
     assert(request.method == HTTP_UNKNOWN);
 
     http_buffer_concat(buffer, "GET\n");
-
     http_request_parse(&request, buffer);
-
     assert(request.method == HTTP_UNKNOWN);
 
     http_buffer_concat(buffer, "GET \n");
-
     http_request_parse(&request, buffer);
-
     assert(request.method == HTTP_GET);
 
     http_buffer_free(buffer);
