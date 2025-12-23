@@ -1,8 +1,10 @@
 CFLAGS = -O2 -Wall
 
-.PHONY: all clean
+.PHONY: all check clean
 
-all: test
+all: check
+
+check: test
 	./test
 
 test: test.o test-buffer.o buffer.o
