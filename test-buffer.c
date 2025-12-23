@@ -17,8 +17,8 @@ static void test_buffer1(void)
     assert(buffer->end == buffer->buf + 1);
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == NULL);
-    assert(line.end == NULL);
+    assert(!line.begin);
+    assert(!line.end);
 
     ret = http_buffer_fill(buffer, "\n");
     assert(ret == 1);
@@ -30,8 +30,8 @@ static void test_buffer1(void)
     assert(line.end == buffer->buf + 1);
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == NULL);
-    assert(line.end == NULL);
+    assert(!line.begin);
+    assert(!line.end);
 
     http_buffer_free(buffer);
 }
@@ -48,8 +48,8 @@ static void test_buffer2(void)
     assert(buffer->end == buffer->buf + 2);
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == NULL);
-    assert(line.end == NULL);
+    assert(!line.begin);
+    assert(!line.end);
 
     ret = http_buffer_fill(buffer, "a\n");
     assert(ret == 2);
@@ -61,8 +61,8 @@ static void test_buffer2(void)
     assert(line.end == buffer->buf + 2);
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == NULL);
-    assert(line.end == NULL);
+    assert(!line.begin);
+    assert(!line.end);
 
     ret = http_buffer_fill(buffer, "\n\n");
     assert(ret == 2);
@@ -78,8 +78,8 @@ static void test_buffer2(void)
     assert(line.end == buffer->buf + 2);
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == NULL);
-    assert(line.end == NULL);
+    assert(!line.begin);
+    assert(!line.end);
 
     http_buffer_free(buffer);
 }
@@ -108,8 +108,8 @@ static void test_buffer3(void)
     assert(!memcmp(line.begin, "\r\n", line.end - line.begin));
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == NULL);
-    assert(line.end == NULL);
+    assert(!line.begin);
+    assert(!line.end);
 
     http_buffer_free(buffer);
 }
@@ -129,8 +129,8 @@ static void test_buffer4(void)
     assert(!memcmp(line.begin, "GET /index.html HTTP/1.0\r\n", line.end - line.begin));
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == NULL);
-    assert(line.end == NULL);
+    assert(!line.begin);
+    assert(!line.end);
 
     ret = http_buffer_fill(buffer, ".example.com\r\nUser-Agent: TestAgent/1.0\r\n\r\n");
     assert(ret == 43);
@@ -147,8 +147,8 @@ static void test_buffer4(void)
     assert(!memcmp(line.begin, "\r\n", line.end - line.begin));
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == NULL);
-    assert(line.end == NULL);
+    assert(!line.begin);
+    assert(!line.end);
 
     http_buffer_free(buffer);
 }
