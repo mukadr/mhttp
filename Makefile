@@ -1,5 +1,5 @@
 CC ?= gcc
-CFLAGS = -O2 -Wall -std=c99
+CFLAGS = -O2 -Wall -Werror=implicit-function-declaration -std=c99
 
 .PHONY: all check clean
 
