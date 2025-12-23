@@ -1,12 +1,21 @@
+CFLAGS = -O2 -Wall
+
 .PHONY: all clean
 
-all: mhttp
+all: test
+	./test
 
-mhttp: main.o
-	gcc main.o -o mhttp
+test: test.o test-buffer.o buffer.o
+	gcc $^ -o test
 
-main.o: main.c
-	gcc -c -O2 -Wall main.c
+test.o: test.c
+	gcc $^ -c $(CFLAGS)
+
+test-buffer.o: test-buffer.c
+	gcc $^ -c $(CFLAGS)
+
+buffer.o: buffer.c
+	gcc $^ -c $(CFLAGS)
 
 clean:
-	rm -f *.o mhttp
+	rm -f *.o test
