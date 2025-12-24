@@ -6,11 +6,9 @@
 
 HttpBuffer *http_buffer_new(size_t size)
 {
-    HttpBuffer *buffer;
-
     assert(size > 0);
 
-    buffer = malloc(sizeof(*buffer) + size);
+    HttpBuffer *buffer = malloc(sizeof(*buffer) + size);
 
     if (buffer) {
         buffer->size = size;
