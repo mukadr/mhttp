@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 
+#include "http.h"
 #include "buffer.h"
 
 typedef enum HttpMethod {
@@ -15,6 +16,6 @@ typedef struct HttpRequest {
     char uri[256];
 } HttpRequest;
 
-bool http_request_parse(HttpRequest *request, HttpBuffer *buffer);
+HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer);
 
 #endif // MHTTP_REQUEST_H
