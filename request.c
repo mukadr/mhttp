@@ -23,7 +23,7 @@ static void http_request_parse_method(HttpRequest *request, HttpSlice line)
             }
 
             int c = slice_next(&line);
-            if (c == -1 || c == ' ' || c == '\r' || c == '\n') {
+            if (c == ' ' || c == '\r' || c == '\n') {
                 break;
             }
 
