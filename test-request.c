@@ -10,25 +10,23 @@ void test_request1(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest request;
-    bool ret;
+    HttpResult ret;
 
     http_buffer_concat(buffer, "X");
     ret = http_request_parse(&request, buffer);
-    assert(!ret);
+    assert(ret == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(buffer, "BLA\n");
     ret = http_request_parse(&request, buffer);
-    assert(ret);
-    assert(request.method == HTTP_UNKNOWN);
+    assert(ret == HTTP_ERROR);
 
     http_buffer_concat(buffer, "GET\n");
     ret = http_request_parse(&request, buffer);
-    assert(ret);
-    assert(request.method == HTTP_UNKNOWN);
+    assert(ret == HTTP_ERROR);
 
     http_buffer_concat(buffer, "GET \n");
     ret = http_request_parse(&request, buffer);
-    assert(ret);
+    assert(ret == HTTP_OK);
     assert(request.method == HTTP_GET);
 
     http_buffer_free(buffer);
@@ -38,7 +36,7 @@ void test_request2(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest request;
-    bool ret;
+    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -47,7 +45,7 @@ void test_request2(void)
     );
 
     ret = http_request_parse(&request, buffer);
-    assert(ret);
+    assert(ret == HTTP_OK);
     assert(request.method == HTTP_GET);
     assert(!strcmp(request.uri, "/index.html"));
 
