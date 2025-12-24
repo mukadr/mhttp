@@ -8,7 +8,7 @@
 
 void test_request1(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpBuffer *buffer = http_buffer_new(512);
     HttpRequest request;
     HttpResult ret;
 
@@ -27,6 +27,10 @@ void test_request1(void)
     http_buffer_concat(buffer, "GET \n");
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_ERROR);
+
+    http_buffer_concat(buffer, "GET XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_URI_TOO_LONG);
 
     http_buffer_free(buffer);
 }
