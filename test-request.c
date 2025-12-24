@@ -26,8 +26,7 @@ void test_request1(void)
 
     http_buffer_concat(buffer, "GET \n");
     ret = http_request_parse(&request, buffer);
-    assert(ret == HTTP_OK);
-    assert(request.method == HTTP_GET);
+    assert(ret == HTTP_ERROR);
 
     http_buffer_free(buffer);
 }
