@@ -30,7 +30,7 @@ static HttpResult http_request_parse_method(HttpRequest *request, HttpSlice line
 
         request->uri[uri_len] = '\0';
 
-        return HTTP_OK;
+        return uri_len ? HTTP_OK : HTTP_ERROR;
     }
 
     return HTTP_ERROR;
