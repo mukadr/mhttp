@@ -11,12 +11,11 @@ static void http_request_parse_method(HttpRequest *request, HttpSlice line)
     }
 
     if (!memcmp(line.begin, "GET ", 4)) {
-        size_t uri_len = 0;
+        request->method = HTTP_GET;
 
         slice_advance(&line, 4);
 
-        request->method = HTTP_GET;
-
+        size_t uri_len = 0;
         while (1) {
             if (uri_len == sizeof(request->uri) - 1) {
                 // XXX: URI too long
