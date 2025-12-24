@@ -14,6 +14,7 @@ static void test_buffer1(void)
 
     ret = http_buffer_concat(buffer, "abc");
     assert(ret == 1);
+    assert(buffer->buf[0] == 'a');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 1);
 
@@ -23,6 +24,7 @@ static void test_buffer1(void)
 
     ret = http_buffer_concat(buffer, "\n");
     assert(ret == 1);
+    assert(buffer->buf[0] == '\n');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 1);
 
@@ -45,6 +47,8 @@ static void test_buffer2(void)
 
     ret = http_buffer_concat(buffer, "abc");
     assert(ret == 2);
+    assert(buffer->buf[0] == 'a');
+    assert(buffer->buf[1] == 'b');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 2);
 
@@ -54,6 +58,8 @@ static void test_buffer2(void)
 
     ret = http_buffer_concat(buffer, "a\n");
     assert(ret == 2);
+    assert(buffer->buf[0] == 'a');
+    assert(buffer->buf[1] == '\n');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 2);
 
@@ -67,6 +73,8 @@ static void test_buffer2(void)
 
     ret = http_buffer_concat(buffer, "\n\n");
     assert(ret == 2);
+    assert(buffer->buf[0] == '\n');
+    assert(buffer->buf[1] == '\n');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 2);
 
