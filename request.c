@@ -10,7 +10,7 @@ static HttpResult http_request_parse_method(HttpRequest *request, HttpSlice line
     }
 
     if (!memcmp(line.begin, "GET ", 4)) {
-        request->method = HTTP_GET;
+        request->method = HTTP_METHOD_GET;
 
         slice_advance(&line, 4);
 

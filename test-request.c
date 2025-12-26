@@ -49,7 +49,7 @@ void test_request2(void)
 
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_OK);
-    assert(request.method == HTTP_GET);
+    assert(request.method == HTTP_METHOD_GET);
     assert(!strcmp(request.uri, "/index.html"));
 
     http_buffer_free(buffer);
