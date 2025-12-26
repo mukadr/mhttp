@@ -7,7 +7,6 @@
 #include "buffer.h"
 
 typedef enum HttpMethod {
-    HTTP_UNKNOWN,
     HTTP_GET
 } HttpMethod;
 
