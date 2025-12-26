@@ -1,30 +1,30 @@
 CC ?= gcc
 CFLAGS = -O2 -Wall -Werror=implicit-function-declaration -std=c99
 
-.PHONY: all check clean
+OBJS  = test.o
+OBJS += test-buffer.o
+OBJS += test-request.o
+OBJS += buffer.o
+OBJS += request.o
 
 all: test
 
 check: test
-	./test
+	@echo "  CHECK"
+	@./test
 
-test: test.o test-buffer.o test-request.o buffer.o request.o
-	$(CC) $^ -o test
+test: $(OBJS)
+	@echo "  LINK    $@"
+	@$(CC) $^ -o $@
 
-test.o: test.c
-	$(CC) $^ -c $(CFLAGS)
+-include $(patsubst %.o,%.d,$(OBJS))
 
-test-buffer.o: test-buffer.c
-	$(CC) $^ -c $(CFLAGS)
-
-test-request.o: test-request.c
-	$(CC) $^ -c $(CFLAGS)
-
-buffer.o: buffer.c
-	$(CC) $^ -c $(CFLAGS)
-
-request.o: request.c
-	$(CC) $^ -c $(CFLAGS)
+%.o: %.c
+	@echo "  CC      $@"
+	@$(CC) $(CFLAGS) -MMD -MF $*.d -c $<
 
 clean:
-	rm -f *.o test
+	@echo "  CLEAN"
+	@rm -f *.o test
+
+.PHONY: all check clean
