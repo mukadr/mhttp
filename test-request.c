@@ -28,6 +28,14 @@ void test_malformed_request(void)
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_ERROR);
 
+    http_buffer_concat(buffer, "GET / HTTP\n");
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_ERROR);
+
+    http_buffer_concat(buffer, "GET / HTTP2.\n");
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_ERROR);
+
     http_buffer_concat(buffer, "GET XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_URI_TOO_LONG);
