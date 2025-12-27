@@ -57,7 +57,7 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
             return HTTP_ERROR;
         }
 
-        int major = c - '0';
+        request->http_major = c - '0';
 
         c = slice_next(line);
         if (c != '.') {
@@ -69,10 +69,7 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
             return HTTP_ERROR;
         }
 
-        int minor = c - '0';
-
-        request->http_major = major;
-        request->http_minor = minor;
+        request->http_minor = c - '0';
 
         slice_next(line);
 
