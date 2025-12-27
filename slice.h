@@ -34,12 +34,10 @@ static inline void slice_advance(HttpSlice *slice, int n)
     slice->begin += n;
 }
 
-static inline bool slice_eq(const HttpSlice *slice, const char *str)
-{
-    return !memcmp(slice->begin, str, slice_len(slice));
-}
-
 bool slice_match(HttpSlice *slice, const char *str);
+
 bool slice_at_endofline(const HttpSlice *slice);
+
+bool slice_eq(const HttpSlice *slice, const char *str);
 
 #endif // MHTTP_SLICE_H

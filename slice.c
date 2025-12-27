@@ -30,3 +30,12 @@ bool slice_at_endofline(const HttpSlice *slice)
     }
     return false;
 }
+
+bool slice_eq(const HttpSlice *slice, const char *str)
+{
+    size_t len = strlen(str);
+    if (slice_len(slice) != len) {
+        return false;
+    }
+    return !memcmp(slice->begin, str, len);
+}
