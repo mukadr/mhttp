@@ -8,10 +8,4 @@ typedef enum HttpResult {
     HTTP_ERROR
 } HttpResult;
 
-#ifdef __unix__
-#include <sys/types.h>
-#else
-typedef int ssize_t;
-#endif
-
 #endif // MHTTP_HTTP_H

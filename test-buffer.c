@@ -22,7 +22,7 @@ static void test_buffer1(void)
     assert(slice_empty(&line));
 
     ret = http_buffer_concat(buffer, "\n");
-    assert(ret == -1);
+    assert(ret == 0);
     assert(buffer->buf[0] == 'a');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 1);
@@ -61,7 +61,7 @@ static void test_buffer2(void)
     assert(slice_empty(&line));
 
     ret = http_buffer_concat(buffer, "a\n");
-    assert(ret == -1);
+    assert(ret == 0);
 
     http_buffer_reset(buffer);
 

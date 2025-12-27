@@ -30,18 +30,18 @@ void http_buffer_reset(HttpBuffer *buffer)
     buffer->end = buffer->buf;
 }
 
-ssize_t http_buffer_concat(HttpBuffer *buffer, const char *str)
+size_t http_buffer_concat(HttpBuffer *buffer, const char *str)
 {
-    ssize_t remaining = buffer->end - buffer->pos;
-    ssize_t available = buffer->size - remaining;
+    size_t remaining = buffer->end - buffer->pos;
+    size_t available = buffer->size - remaining;
 
     if (!available) {
-        return -1;
+        return 0;
     }
 
     memmove(buffer->buf, buffer->pos, remaining);
 
-    ssize_t len = strlen(str);
+    size_t len = strlen(str);
     if (len > available) {
         len = available;
     }
