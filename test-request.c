@@ -242,7 +242,7 @@ void test_head_request_with_headers_requiring_more_data(void)
 
     http_buffer_concat(
         buffer,
-        ".com\r\nApi-Key: 123456\r\n"
+        ".com\r\nApi-Key: 123456\r\nUse"
     );
 
     ret = http_request_parse(&request, buffer);
@@ -250,7 +250,7 @@ void test_head_request_with_headers_requiring_more_data(void)
 
     http_buffer_concat(
         buffer,
-        "User-Agen"
+        "r-Agen"
     );
 
     ret = http_request_parse(&request, buffer);
