@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 
+#include "http.h"
 #include "slice.h"
 
 typedef struct HttpBuffer {
@@ -18,7 +19,7 @@ void http_buffer_free(HttpBuffer *buffer);
 
 void http_buffer_reset(HttpBuffer *buffer);
 
-int http_buffer_concat(HttpBuffer *buffer, const char *str);
+ssize_t http_buffer_concat(HttpBuffer *buffer, const char *str);
 
 HttpSlice http_buffer_next_line(HttpBuffer *buffer);
 
