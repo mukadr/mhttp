@@ -89,8 +89,13 @@ static HttpResult parse_method_head(HttpRequest *request, HttpSlice line)
     return parse_http_version(request, &line);
 }
 
-static HttpResult parse_method(HttpRequest *request, HttpSlice line)
+static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
 {
+    HttpSlice line = http_buffer_next_line(buffer);
+    if (!slice_len(&line)) {
+        return HTTP_REQUIRES_MORE_DATA;
+    }
+
     if (slice_match(&line, "GET ")) {
         return parse_method_get(request, line);
     }
@@ -175,8 +180,11 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
             return ret;
         }
 
+        if (*header_ptr) {
+            header->next = *header_ptr;
+        }
+
         *header_ptr = header;
-        header_ptr = &header->next;
     }
 
     return HTTP_OK;
@@ -184,15 +192,21 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
 
 HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer)
 {
-    HttpSlice line = http_buffer_next_line(buffer);
-    if (!slice_len(&line)) {
-        return HTTP_REQUIRES_MORE_DATA;
+    if (request->state == HTTP_STATE_INITIAL) {
+        HttpResult ret = parse_method(request, buffer);
+        if (ret != HTTP_OK) {
+            return ret;
+        }
+        request->state = HTTP_STATE_REQUEST_HEADERS;
     }
 
-    HttpResult ret = parse_method(request, line);
-    if (ret != HTTP_OK) {
-        return ret;
+    if (request->state == HTTP_STATE_REQUEST_HEADERS) {
+        HttpResult ret = parse_headers(request, buffer);
+        if (ret != HTTP_OK) {
+            return ret;
+        }
+        request->state = HTTP_STATE_DONE;
     }
 
-    return parse_headers(request, buffer);
+    return HTTP_OK;
 }

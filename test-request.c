@@ -68,6 +68,7 @@ void test_get_request(void)
         "\r\n"
     );
 
+    request.state = HTTP_STATE_INITIAL;
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_OK);
     assert(request.http_major == 1);
@@ -81,6 +82,7 @@ void test_get_request(void)
         "\r\n"
     );
 
+    request.state = HTTP_STATE_INITIAL;
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_OK);
     assert(request.http_major == 1);
@@ -159,6 +161,7 @@ void test_head_request(void)
         "\r\n"
     );
 
+    request.state = HTTP_STATE_INITIAL;
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_OK);
     assert(request.http_major == 1);
@@ -172,6 +175,7 @@ void test_head_request(void)
         "\r\n"
     );
 
+    request.state = HTTP_STATE_INITIAL;
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_OK);
     assert(request.http_major == 1);
@@ -182,10 +186,114 @@ void test_head_request(void)
     http_buffer_free(buffer);
 }
 
+void test_incomplete_head_request(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest request = {0};
+    HttpResult ret;
+
+    http_buffer_concat(
+        buffer,
+        "HEAD /tralala"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_REQUIRES_MORE_DATA);
+
+    http_buffer_concat(
+        buffer,
+        ".html HTTP/1.0\r\n"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_REQUIRES_MORE_DATA);
+
+    http_buffer_concat(
+        buffer,
+        "Host: www.example"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_REQUIRES_MORE_DATA);
+
+    http_buffer_concat(
+        buffer,
+        ".com\r\nApi-Key: 123456\r\n"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_REQUIRES_MORE_DATA);
+
+    http_buffer_concat(
+        buffer,
+        "User-Agen"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_REQUIRES_MORE_DATA);
+
+    http_buffer_concat(
+        buffer,
+        "t: TestAgent"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_REQUIRES_MORE_DATA);
+
+    http_buffer_concat(
+        buffer,
+        "/1.0\r\n"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_REQUIRES_MORE_DATA);
+
+    http_buffer_concat(
+        buffer,
+        "\r\n"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_OK);
+
+    assert(request.http_major == 1);
+    assert(request.http_minor == 0);
+    assert(request.method == HTTP_METHOD_HEAD);
+    assert(!strcmp(request.uri, "/tralala.html"));
+
+    bool found_host = false;
+    bool found_apikey = false;
+    bool found_user_agent = false;
+    HttpHeader *header = request.headers;
+    while (header) {
+        if (!strcmp(header->name, "Host")) {
+            assert(!found_host);
+            assert(!strcmp(header->value, "www.example.com"));
+            found_host = true;
+        } else if (!strcmp(header->name, "Api-Key")) {
+            assert(!found_apikey);
+            assert(!strcmp(header->value, "123456"));
+            found_apikey = true;
+        } else if (!strcmp(header->name, "User-Agent")) {
+            assert(!found_user_agent);
+            assert(!strcmp(header->value, "TestAgent/1.0"));
+            found_user_agent = true;
+        }
+        header = header->next;
+    }
+
+    assert(found_host);
+    assert(found_apikey);
+    assert(found_user_agent);
+
+    http_buffer_free(buffer);
+}
+
 void test_request(void)
 {
     test_malformed_request();
     test_get_request();
     test_get_request_with_headers();
     test_head_request();
+    test_incomplete_head_request();
 }
