@@ -169,7 +169,7 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
         HttpHeader *header = NULL;
 
         HttpSlice line = http_buffer_next_line(buffer);
-        if (!line.begin) {
+        if (!slice_len(&line)) {
             return HTTP_REQUIRES_MORE_DATA;
         }
         if (slice_empty(&line)) {
