@@ -24,7 +24,7 @@ void http_buffer_free(HttpBuffer *buffer)
     free(buffer);
 }
 
-size_t http_buffer_concat(HttpBuffer *buffer, const char *s)
+size_t http_buffer_concat(HttpBuffer *buffer, const char *str)
 {
     size_t remaining = buffer->end - buffer->pos;
     size_t available = buffer->size - remaining;
@@ -38,12 +38,12 @@ size_t http_buffer_concat(HttpBuffer *buffer, const char *s)
         remaining = 0;
     }
 
-    size_t len = strlen(s);
+    size_t len = strlen(str);
     if (len > available) {
         len = available;
     }
 
-    memcpy(buffer->buf + remaining, s, len);
+    memcpy(buffer->buf + remaining, str, len);
 
     buffer->pos = buffer->buf;
     buffer->end = buffer->buf + remaining + len;
