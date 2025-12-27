@@ -11,11 +11,18 @@ typedef enum HttpMethod {
     HTTP_METHOD_HEAD
 } HttpMethod;
 
+typedef struct HttpHeader {
+    char name[256];
+    char value[256];
+    struct HttpHeader *next;
+} HttpHeader;
+
 typedef struct HttpRequest {
     int http_major;
     int http_minor;
     HttpMethod method;
     char uri[256];
+    HttpHeader *headers;
 } HttpRequest;
 
 HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer);
