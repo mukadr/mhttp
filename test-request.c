@@ -61,6 +61,13 @@ void test_get_request(void)
     assert(request.http_minor == 9);
     assert(request.method == HTTP_METHOD_GET);
     assert(!strcmp(request.uri, "/"));
+}
+
+void test_get_request_with_http_version_1_0(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest request = {0};
+    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -68,13 +75,19 @@ void test_get_request(void)
         "\r\n"
     );
 
-    request.state = HTTP_STATE_INITIAL;
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_OK);
     assert(request.http_major == 1);
     assert(request.http_minor == 0);
     assert(request.method == HTTP_METHOD_GET);
     assert(!strcmp(request.uri, "/index.html"));
+}
+
+void test_get_request_with_http_version_1_1(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest request = {0};
+    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -82,7 +95,6 @@ void test_get_request(void)
         "\r\n"
     );
 
-    request.state = HTTP_STATE_INITIAL;
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_OK);
     assert(request.http_major == 1);
@@ -154,6 +166,13 @@ void test_head_request(void)
     assert(request.http_minor == 9);
     assert(request.method == HTTP_METHOD_HEAD);
     assert(!strcmp(request.uri, "/"));
+}
+
+void test_head_request_with_http_version_1_0(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest request = {0};
+    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -161,13 +180,19 @@ void test_head_request(void)
         "\r\n"
     );
 
-    request.state = HTTP_STATE_INITIAL;
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_OK);
     assert(request.http_major == 1);
     assert(request.http_minor == 0);
     assert(request.method == HTTP_METHOD_HEAD);
     assert(!strcmp(request.uri, "/index.html"));
+}
+
+void test_head_request_with_http_version_1_1(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest request = {0};
+    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -175,7 +200,6 @@ void test_head_request(void)
         "\r\n"
     );
 
-    request.state = HTTP_STATE_INITIAL;
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_OK);
     assert(request.http_major == 1);
@@ -186,7 +210,7 @@ void test_head_request(void)
     http_buffer_free(buffer);
 }
 
-void test_incomplete_head_request(void)
+void test_head_request_with_headers_requiring_more_data(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest request = {0};
@@ -293,7 +317,11 @@ void test_request(void)
 {
     test_malformed_request();
     test_get_request();
+    test_get_request_with_http_version_1_0();
+    test_get_request_with_http_version_1_1();
     test_get_request_with_headers();
     test_head_request();
-    test_incomplete_head_request();
+    test_head_request_with_http_version_1_0();
+    test_head_request_with_http_version_1_1();
+    test_head_request_with_headers_requiring_more_data();
 }
