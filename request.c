@@ -10,17 +10,17 @@ static HttpResult http_request_parse_method(HttpRequest *request, HttpSlice line
 
         // parse URI
         size_t uri_len = 0;
-        while (1) {
-            if (uri_len == sizeof(request->uri) - 1) {
-                return HTTP_URI_TOO_LONG;
-            }
-
+        while (true) {
             int c = slice_next(&line);
             if (c == ' ' || c == '\r' || c == '\n') {
                 break;
             }
 
             request->uri[uri_len++] = (char)c;
+
+            if (uri_len == sizeof(request->uri) - 1) {
+                return HTTP_URI_TOO_LONG;
+            }
         }
 
         request->uri[uri_len] = '\0';
