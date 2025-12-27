@@ -32,8 +32,9 @@ size_t http_buffer_concat(HttpBuffer *buffer, const char *str)
     if (available > 0) {
         memmove(buffer->buf, buffer->pos, remaining);
     } else {
-        // If there's no space left, discard the existing data, since the line is greater than buffer size
-        // In this situation we should return BAD REQUEST
+        // If there's no space left, discard the existing data
+        // This situation should be avoided, by never calling
+        // this function when there's no space left.
         available = buffer->size;
         remaining = 0;
     }
