@@ -237,7 +237,7 @@ void test_head_request_with_headers_requiring_more_data(void)
 
     http_buffer_concat(
         buffer,
-        ".html HTTP/1.0\r\n"
+        ".html HTT"
     );
 
     ret = http_request_parse(&request, buffer);
@@ -245,7 +245,31 @@ void test_head_request_with_headers_requiring_more_data(void)
 
     http_buffer_concat(
         buffer,
-        "Host: www.example"
+        "P/1.0\r\n"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_REQUIRES_MORE_DATA);
+
+    http_buffer_concat(
+        buffer,
+        "Host"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_REQUIRES_MORE_DATA);
+
+    http_buffer_concat(
+        buffer,
+        ":"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_REQUIRES_MORE_DATA);
+
+    http_buffer_concat(
+        buffer,
+        " www.example"
     );
 
     ret = http_request_parse(&request, buffer);
