@@ -28,7 +28,7 @@ static void test_buffer1(void)
     assert(buffer->end == buffer->buf + 1);
 
     line = http_buffer_next_line(buffer);
-    assert(slice_len(&line) == 1);
+    assert(slice_eq(&line, "\n"));
 
     line = http_buffer_next_line(buffer);
     assert(slice_empty(&line));
@@ -60,7 +60,7 @@ static void test_buffer2(void)
     assert(buffer->end == buffer->buf + 2);
 
     line = http_buffer_next_line(buffer);
-    assert(slice_len(&line) == 2);
+    assert(slice_eq(&line, "a\n"));
 
     line = http_buffer_next_line(buffer);
     assert(slice_empty(&line));
@@ -73,10 +73,10 @@ static void test_buffer2(void)
     assert(buffer->end == buffer->buf + 2);
 
     line = http_buffer_next_line(buffer);
-    assert(slice_len(&line) == 1);
+    assert(slice_eq(&line, "\n"));
 
     line = http_buffer_next_line(buffer);
-    assert(slice_len(&line) == 1);
+    assert(slice_eq(&line, "\n"));
 
     line = http_buffer_next_line(buffer);
     assert(slice_empty(&line));
