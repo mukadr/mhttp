@@ -102,12 +102,66 @@ static HttpResult parse_method(HttpRequest *request, HttpSlice line)
     return HTTP_ERROR;
 }
 
+static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader **out_header)
+{
+    int c;
+
+    HttpHeader *header = malloc(sizeof(*header));
+    if (!header) {
+        return HTTP_ERROR;
+    }
+
+    size_t name_len = 0;
+    while (true) {
+        c = slice_next(line);
+        if (c == ':') {
+            break;
+        }
+        if (c == '\r' || c == '\n' || c == -1) {
+            free(header);
+            return HTTP_ERROR;
+        }
+        if (name_len == sizeof(header->name) - 1) {
+            free(header);
+            return HTTP_ERROR;
+        }
+        header->name[name_len++] = (char)c;
+    }
+    header->name[name_len] = '\0';
+
+    c = slice_next(line);
+    if (c != ' ') {
+        free(header);
+        return HTTP_ERROR;
+    }
+
+    size_t value_len = 0;
+    while (true) {
+        c = slice_next(line);
+        if (c == '\r' || c == '\n' || c == -1) {
+            break;
+        }
+        if (value_len == sizeof(header->value) - 1) {
+            free(header);
+            return HTTP_ERROR;
+        }
+        header->value[value_len++] = (char)c;
+    }
+    header->value[value_len] = '\0';
+
+    header->next = NULL;
+    *out_header = header;
+
+    return HTTP_OK;
+}
+
 static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
 {
     HttpHeader **header_ptr = &request->headers;
 
     while (true) {
-        int c;
+        HttpResult ret;
+        HttpHeader *header = NULL;
 
         HttpSlice line = http_buffer_next_line(buffer);
         if (!line.begin) {
@@ -116,51 +170,11 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
         if (slice_empty(&line)) {
             break;
         }
-
-        HttpHeader *header = malloc(sizeof(*header));
-        if (!header) {
-            return HTTP_ERROR;
+        ret = parse_header(request, &line, &header);
+        if (ret != HTTP_OK) {
+            return ret;
         }
 
-        size_t name_len = 0;
-        while (true) {
-            c = slice_next(&line);
-            if (c == ':') {
-                break;
-            }
-            if (c == '\r' || c == '\n' || c == -1) {
-                free(header);
-                return HTTP_ERROR;
-            }
-            if (name_len == sizeof(header->name) - 1) {
-                free(header);
-                return HTTP_ERROR;
-            }
-            header->name[name_len++] = (char)c;
-        }
-        header->name[name_len] = '\0';
-
-        c = slice_next(&line);
-        if (c != ' ') {
-            free(header);
-            return HTTP_ERROR;
-        }
-
-        size_t value_len = 0;
-        while (true) {
-            c = slice_next(&line);
-            if (c == '\r' || c == '\n' || c == -1) {
-                break;
-            }
-            if (value_len == sizeof(header->value) - 1) {
-                free(header);
-                return HTTP_ERROR;
-            }
-            header->value[value_len++] = (char)c;
-        }
-        header->value[value_len] = '\0';
-
-        header->next = NULL;
         *header_ptr = header;
         header_ptr = &header->next;
     }
