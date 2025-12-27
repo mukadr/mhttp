@@ -12,11 +12,11 @@ static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
             break;
         }
 
-        request->uri[uri_len++] = (char)c;
-
         if (uri_len == sizeof(request->uri) - 1) {
             return HTTP_URI_TOO_LONG;
         }
+
+        request->uri[uri_len++] = (char)c;
     }
 
     request->uri[uri_len] = '\0';
