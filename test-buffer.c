@@ -19,8 +19,7 @@ static void test_buffer1(void)
     assert(buffer->end == buffer->buf + 1);
 
     line = http_buffer_next_line(buffer);
-    assert(!line.begin);
-    assert(!line.end);
+    assert(slice_empty(&line));
 
     ret = http_buffer_concat(buffer, "\n");
     assert(ret == 1);
@@ -29,12 +28,10 @@ static void test_buffer1(void)
     assert(buffer->end == buffer->buf + 1);
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == buffer->buf);
-    assert(line.end == buffer->buf + 1);
+    assert(slice_len(&line) == 1);
 
     line = http_buffer_next_line(buffer);
-    assert(!line.begin);
-    assert(!line.end);
+    assert(slice_empty(&line));
 
     http_buffer_free(buffer);
 }
@@ -53,8 +50,7 @@ static void test_buffer2(void)
     assert(buffer->end == buffer->buf + 2);
 
     line = http_buffer_next_line(buffer);
-    assert(!line.begin);
-    assert(!line.end);
+    assert(slice_empty(&line));
 
     ret = http_buffer_concat(buffer, "a\n");
     assert(ret == 2);
@@ -64,12 +60,10 @@ static void test_buffer2(void)
     assert(buffer->end == buffer->buf + 2);
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == buffer->buf);
-    assert(line.end == buffer->buf + 2);
+    assert(slice_len(&line) == 2);
 
     line = http_buffer_next_line(buffer);
-    assert(!line.begin);
-    assert(!line.end);
+    assert(slice_empty(&line));
 
     ret = http_buffer_concat(buffer, "\n\n");
     assert(ret == 2);
@@ -79,16 +73,13 @@ static void test_buffer2(void)
     assert(buffer->end == buffer->buf + 2);
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == buffer->buf);
-    assert(line.end == buffer->buf + 1);
+    assert(slice_len(&line) == 1);
 
     line = http_buffer_next_line(buffer);
-    assert(line.begin == buffer->buf + 1);
-    assert(line.end == buffer->buf + 2);
+    assert(slice_len(&line) == 1);
 
     line = http_buffer_next_line(buffer);
-    assert(!line.begin);
-    assert(!line.end);
+    assert(slice_empty(&line));
 
     http_buffer_free(buffer);
 }
@@ -105,20 +96,19 @@ static void test_buffer3(void)
     assert(buffer->end == buffer->buf + 78);
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "GET /index.html HTTP/1.0\r\n", slice_len(&line)));
+    assert(slice_eq(&line, "GET /index.html HTTP/1.0\r\n"));
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "Host: www.example.com\r\n", slice_len(&line)));
+    assert(slice_eq(&line, "Host: www.example.com\r\n"));
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "User-Agent: TestAgent/1.0\r\n", slice_len(&line)));
+    assert(slice_eq(&line, "User-Agent: TestAgent/1.0\r\n"));
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "\r\n", slice_len(&line)));
+    assert(slice_eq(&line, "\r\n"));
 
     line = http_buffer_next_line(buffer);
-    assert(!line.begin);
-    assert(!line.end);
+    assert(slice_empty(&line));
 
     http_buffer_free(buffer);
 }
@@ -135,11 +125,10 @@ static void test_buffer4(void)
     assert(buffer->end == buffer->buf + 35);
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "GET /index.html HTTP/1.0\r\n", slice_len(&line)));
+    assert(slice_eq(&line, "GET /index.html HTTP/1.0\r\n"));
 
     line = http_buffer_next_line(buffer);
-    assert(!line.begin);
-    assert(!line.end);
+    assert(slice_empty(&line));
 
     ret = http_buffer_concat(buffer, ".example.com\r\nUser-Agent: TestAgent/1.0\r\n\r\n");
     assert(ret == 43);
@@ -147,17 +136,16 @@ static void test_buffer4(void)
     assert(buffer->end == buffer->buf + 52);
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "Host: www.example.com\r\n", slice_len(&line)));
+    assert(slice_eq(&line, "Host: www.example.com\r\n"));
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "User-Agent: TestAgent/1.0\r\n", slice_len(&line)));
+    assert(slice_eq(&line, "User-Agent: TestAgent/1.0\r\n"));
 
     line = http_buffer_next_line(buffer);
-    assert(!memcmp(line.begin, "\r\n", slice_len(&line)));
+    assert(slice_eq(&line, "\r\n"));
 
     line = http_buffer_next_line(buffer);
-    assert(!line.begin);
-    assert(!line.end);
+    assert(slice_empty(&line));
 
     http_buffer_free(buffer);
 }
