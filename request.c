@@ -1,5 +1,4 @@
 #include <string.h>
-#include <stdio.h>
 
 #include "request.h"
 #include "buffer.h"
