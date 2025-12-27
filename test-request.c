@@ -65,6 +65,18 @@ void test_request_get(void)
     assert(request.method == HTTP_METHOD_GET);
     assert(!strcmp(request.uri, "/index.html"));
 
+    http_buffer_concat(
+        buffer,
+        "GET /static/chat.png HTTP/1.1\r\n"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_OK);
+    assert(request.http_major == 1);
+    assert(request.http_minor == 1);
+    assert(request.method == HTTP_METHOD_GET);
+    assert(!strcmp(request.uri, "/static/chat.png"));
+
     http_buffer_free(buffer);
 }
 
@@ -97,6 +109,18 @@ void test_request_head(void)
     assert(request.http_minor == 0);
     assert(request.method == HTTP_METHOD_HEAD);
     assert(!strcmp(request.uri, "/index.html"));
+
+    http_buffer_concat(
+        buffer,
+        "HEAD /static/chat.png HTTP/1.1\r\n"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_OK);
+    assert(request.http_major == 1);
+    assert(request.http_minor == 1);
+    assert(request.method == HTTP_METHOD_HEAD);
+    assert(!strcmp(request.uri, "/static/chat.png"));
 
     http_buffer_free(buffer);
 }
