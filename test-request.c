@@ -138,6 +138,8 @@ void test_get_request_with_headers(void)
             assert(!found_user_agent);
             assert(!strcmp(header->value, "TestAgent/1.0"));
             found_user_agent = true;
+        } else {
+            assert(false);
         }
         header = header->next;
     }
@@ -302,6 +304,8 @@ void test_head_request_with_headers_requiring_more_data(void)
             assert(!found_user_agent);
             assert(!strcmp(header->value, "TestAgent/1.0"));
             found_user_agent = true;
+        } else {
+            assert(false);
         }
         header = header->next;
     }
