@@ -49,7 +49,8 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
         request->http_major = major;
         request->http_minor = minor;
 
-        c = slice_next(line);
+        slice_next(line);
+
         if (!slice_empty(line)) {
             return HTTP_ERROR;
         }
