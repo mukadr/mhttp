@@ -180,10 +180,7 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
             return ret;
         }
 
-        if (*header_ptr) {
-            header->next = *header_ptr;
-        }
-
+        header->next = *header_ptr;
         *header_ptr = header;
     }
 
