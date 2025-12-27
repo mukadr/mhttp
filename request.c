@@ -5,23 +5,23 @@
 
 static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
 {
-    size_t uri_len = 0;
+    size_t len = 0;
     while (true) {
         int c = slice_next(line);
         if (c == ' ' || c == '\r' || c == '\n' || c == -1) {
             break;
         }
 
-        if (uri_len == sizeof(request->uri) - 1) {
+        if (len == sizeof(request->uri) - 1) {
             return HTTP_URI_TOO_LONG;
         }
 
-        request->uri[uri_len++] = (char)c;
+        request->uri[len++] = (char)c;
     }
 
-    request->uri[uri_len] = '\0';
+    request->uri[len] = '\0';
 
-    return uri_len ? HTTP_OK : HTTP_ERROR;
+    return len ? HTTP_OK : HTTP_ERROR;
 }
 
 static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
