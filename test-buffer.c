@@ -103,7 +103,14 @@ static void test_buffer3(void)
     HttpSlice line;
     size_t ret;
 
-    ret = http_buffer_concat(buffer, "GET /index.html HTTP/1.0\r\nHost: www.example.com\r\nUser-Agent: TestAgent/1.0\r\n\r\n");
+    ret = http_buffer_concat(
+        buffer,
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.example.com\r\n"
+        "User-Agent: TestAgent/1.0\r\n"
+        "\r\n"
+    );
+
     assert(ret == 78);
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 78);
@@ -132,7 +139,12 @@ static void test_buffer4(void)
     HttpSlice line;
     size_t ret;
 
-    ret = http_buffer_concat(buffer, "GET /index.html HTTP/1.0\r\nHost: www");
+    ret = http_buffer_concat(
+        buffer,
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www"
+    );
+
     assert(ret == 35);
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 35);
@@ -143,7 +155,13 @@ static void test_buffer4(void)
     line = http_buffer_next_line(buffer);
     assert(slice_empty(&line));
 
-    ret = http_buffer_concat(buffer, ".example.com\r\nUser-Agent: TestAgent/1.0\r\n\r\n");
+    ret = http_buffer_concat(
+        buffer,
+        ".example.com\r\n"
+        "User-Agent: TestAgent/1.0\r\n"
+        "\r\n"
+    );
+
     assert(ret == 43);
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 52);
