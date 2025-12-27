@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "request.h"
 #include "buffer.h"
@@ -14,6 +15,7 @@ static HttpResult http_request_parse_method(HttpRequest *request, HttpSlice line
 
         slice_advance(&line, 4);
 
+        // parse URI
         size_t uri_len = 0;
         while (1) {
             if (uri_len == sizeof(request->uri) - 1) {
@@ -30,7 +32,49 @@ static HttpResult http_request_parse_method(HttpRequest *request, HttpSlice line
 
         request->uri[uri_len] = '\0';
 
-        return uri_len ? HTTP_OK : HTTP_ERROR;
+        if (!uri_len) {
+            return HTTP_ERROR;
+        }
+
+        // parse HTTP version
+        if (slice_len(&line) >= 5 && !memcmp(line.begin, "HTTP/", 5)) {
+            slice_advance(&line, 5);
+
+            int c = slice_next(&line);
+            if (c < '0' || c > '9') {
+                return HTTP_ERROR;
+            }
+
+            int major = c - '0';
+
+            c = slice_next(&line);
+            if (c != '.') {
+                return HTTP_ERROR;
+            }
+
+            c = slice_next(&line);
+            if (c < '0' || c > '9') {
+                return HTTP_ERROR;
+            }
+
+            int minor = c - '0';
+
+            request->http_major = major;
+            request->http_minor = minor;
+
+            c = slice_next(&line);
+            if (c != '\r' && c != '\n' && c != -1) {
+                return HTTP_ERROR;
+            }
+        } else if (slice_len(&line) && (line.begin[0] == '\r' || line.begin[0] == '\n')) {
+            // HTTP/0.9 (no version present)
+            request->http_major = 0;
+            request->http_minor = 9;
+        } else {
+            return HTTP_ERROR;
+        }
+
+        return HTTP_OK;
     }
 
     return HTTP_ERROR;
