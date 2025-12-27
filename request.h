@@ -7,7 +7,8 @@
 #include "buffer.h"
 
 typedef enum HttpMethod {
-    HTTP_METHOD_GET
+    HTTP_METHOD_GET,
+    HTTP_METHOD_HEAD
 } HttpMethod;
 
 typedef struct HttpRequest {

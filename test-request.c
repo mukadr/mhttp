@@ -6,7 +6,7 @@
 
 #include "test-request.h"
 
-void test_request1(void)
+void test_malformed_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(512);
     HttpRequest request;
@@ -35,7 +35,7 @@ void test_request1(void)
     http_buffer_free(buffer);
 }
 
-void test_request2(void)
+void test_request_get(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest request;
@@ -68,8 +68,42 @@ void test_request2(void)
     http_buffer_free(buffer);
 }
 
+void test_request_head(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest request;
+    HttpResult ret;
+
+    http_buffer_concat(
+        buffer,
+        "HEAD /\r\n"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_OK);
+    assert(request.http_major == 0);
+    assert(request.http_minor == 9);
+    assert(request.method == HTTP_METHOD_HEAD);
+    assert(!strcmp(request.uri, "/"));
+
+    http_buffer_concat(
+        buffer,
+        "HEAD /index.html HTTP/1.0\r\n"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_OK);
+    assert(request.http_major == 1);
+    assert(request.http_minor == 0);
+    assert(request.method == HTTP_METHOD_HEAD);
+    assert(!strcmp(request.uri, "/index.html"));
+
+    http_buffer_free(buffer);
+}
+
 void test_request(void)
 {
-    test_request1();
-    test_request2();
+    test_malformed_request();
+    test_request_get();
+    test_request_head();
 }

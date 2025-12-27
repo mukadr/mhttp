@@ -3,9 +3,9 @@
 #include "request.h"
 #include "buffer.h"
 
-static HttpResult http_request_parse_method_get(HttpRequest *request, HttpSlice line)
+static HttpResult parse_method_get_or_head(HttpRequest *request, HttpSlice line, HttpMethod method)
 {
-    request->method = HTTP_METHOD_GET;
+    request->method = method;
 
     // parse URI
     size_t uri_len = 0;
@@ -70,7 +70,11 @@ static HttpResult http_request_parse_method_get(HttpRequest *request, HttpSlice 
 static HttpResult http_request_parse_method(HttpRequest *request, HttpSlice line)
 {
     if (slice_match(&line, "GET ")) {
-        return http_request_parse_method_get(request, line);
+        return parse_method_get_or_head(request, line, HTTP_METHOD_GET);
+    }
+
+    if (slice_match(&line, "HEAD ")) {
+        return parse_method_get_or_head(request, line, HTTP_METHOD_HEAD);
     }
 
     return HTTP_ERROR;
