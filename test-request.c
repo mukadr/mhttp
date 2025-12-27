@@ -35,7 +35,7 @@ void test_malformed_request(void)
     http_buffer_free(buffer);
 }
 
-void test_request_get(void)
+void test_get_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest request;
@@ -80,7 +80,7 @@ void test_request_get(void)
     http_buffer_free(buffer);
 }
 
-void test_request_head(void)
+void test_head_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest request;
@@ -128,6 +128,6 @@ void test_request_head(void)
 void test_request(void)
 {
     test_malformed_request();
-    test_request_get();
-    test_request_head();
+    test_get_request();
+    test_head_request();
 }
