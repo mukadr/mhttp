@@ -50,10 +50,10 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
         request->http_minor = minor;
 
         c = slice_next(line);
-        if (c != '\r' && c != '\n' && c != -1) {
+        if (!slice_empty(line)) {
             return HTTP_ERROR;
         }
-    } else if (slice_len(line) && (line->begin[0] == '\r' || line->begin[0] == '\n')) {
+    } else if (slice_empty(line)) {
         // HTTP/0.9 (no version present)
         request->http_major = 0;
         request->http_minor = 9;
