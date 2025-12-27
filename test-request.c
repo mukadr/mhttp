@@ -43,12 +43,25 @@ void test_request2(void)
 
     http_buffer_concat(
         buffer,
-        "GET /index.html HTTP/1.0\r\n"
-        "\r\n"
+        "GET /\r\n"
     );
 
     ret = http_request_parse(&request, buffer);
     assert(ret == HTTP_OK);
+    assert(request.http_major == 0);
+    assert(request.http_minor == 9);
+    assert(request.method == HTTP_METHOD_GET);
+    assert(!strcmp(request.uri, "/"));
+
+    http_buffer_concat(
+        buffer,
+        "GET /index.html HTTP/1.0\r\n"
+    );
+
+    ret = http_request_parse(&request, buffer);
+    assert(ret == HTTP_OK);
+    assert(request.http_major == 1);
+    assert(request.http_minor == 0);
     assert(request.method == HTTP_METHOD_GET);
     assert(!strcmp(request.uri, "/index.html"));
 

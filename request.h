@@ -11,6 +11,8 @@ typedef enum HttpMethod {
 } HttpMethod;
 
 typedef struct HttpRequest {
+    int http_major;
+    int http_minor;
     HttpMethod method;
     char uri[256];
 } HttpRequest;
