@@ -3,6 +3,31 @@
 #include "request.h"
 #include "buffer.h"
 
+HttpRequest *http_request_new(void)
+{
+    HttpRequest *request = calloc(1, sizeof(*request));
+    if (!request) {
+        return NULL;
+    }
+
+    request->state = HTTP_STATE_INITIAL;
+
+    return request;
+}
+
+void http_request_free(HttpRequest *request)
+{
+    HttpHeader *header = request->headers;
+
+    while (header) {
+        HttpHeader *next = header->next;
+        free(header);
+        header = next;
+    }
+
+    free(request);
+}
+
 static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
 {
     size_t len = 0;

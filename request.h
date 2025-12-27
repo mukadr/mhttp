@@ -32,6 +32,10 @@ typedef struct HttpRequest {
     HttpHeader *headers;
 } HttpRequest;
 
+HttpRequest *http_request_new(void);
+
+void http_request_free(HttpRequest *request);
+
 HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer);
 
 #endif // MHTTP_REQUEST_H
