@@ -8,7 +8,7 @@ static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
     size_t uri_len = 0;
     while (true) {
         int c = slice_next(line);
-        if (c == ' ' || c == '\r' || c == '\n') {
+        if (c == ' ' || c == '\r' || c == '\n' || c == -1) {
             break;
         }
 
