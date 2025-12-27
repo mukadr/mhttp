@@ -15,7 +15,7 @@ static inline size_t slice_len(const HttpSlice *slice)
 
 static inline bool slice_empty(const HttpSlice *slice)
 {
-    return !slice_len(slice) || slice->begin[0] == '\r' || slice->begin[0] == '\n';
+    return !slice_len(slice);
 }
 
 static inline int slice_next(HttpSlice *slice)
@@ -34,7 +34,7 @@ static inline void slice_advance(HttpSlice *slice, int n)
     slice->begin += n;
 }
 
-bool slice_empty(const HttpSlice *slice);
 bool slice_match(HttpSlice *slice, const char *str);
+bool slice_at_endofline(const HttpSlice *slice);
 
 #endif // MHTTP_SLICE_H

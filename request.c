@@ -51,10 +51,10 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
 
         slice_next(line);
 
-        if (!slice_empty(line)) {
+        if (!slice_at_endofline(line)) {
             return HTTP_ERROR;
         }
-    } else if (slice_empty(line)) {
+    } else if (slice_at_endofline(line)) {
         // HTTP/0.9 (no version present)
         request->http_major = 0;
         request->http_minor = 9;
@@ -92,7 +92,7 @@ static HttpResult parse_method_head(HttpRequest *request, HttpSlice line)
 static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
 {
     HttpSlice line = http_buffer_next_line(buffer);
-    if (!slice_len(&line)) {
+    if (slice_empty(&line)) {
         return HTTP_REQUIRES_MORE_DATA;
     }
 
@@ -169,10 +169,10 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
         HttpHeader *header = NULL;
 
         HttpSlice line = http_buffer_next_line(buffer);
-        if (!slice_len(&line)) {
+        if (slice_empty(&line)) {
             return HTTP_REQUIRES_MORE_DATA;
         }
-        if (slice_empty(&line)) {
+        if (slice_at_endofline(&line)) {
             break;
         }
         ret = parse_header(request, &line, &header);
