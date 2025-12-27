@@ -24,22 +24,24 @@ void http_buffer_free(HttpBuffer *buffer)
     free(buffer);
 }
 
-size_t http_buffer_concat(HttpBuffer *buffer, const char *str)
+void http_buffer_reset(HttpBuffer *buffer)
 {
-    size_t remaining = buffer->end - buffer->pos;
-    size_t available = buffer->size - remaining;
+    buffer->pos = buffer->buf;
+    buffer->end = buffer->buf;
+}
 
-    if (available > 0) {
-        memmove(buffer->buf, buffer->pos, remaining);
-    } else {
-        // If there's no space left, discard the existing data
-        // This situation should be avoided, by never calling
-        // this function when there's no space left.
-        available = buffer->size;
-        remaining = 0;
+int http_buffer_concat(HttpBuffer *buffer, const char *str)
+{
+    int remaining = buffer->end - buffer->pos;
+    int available = buffer->size - remaining;
+
+    if (!available) {
+        return -1;
     }
 
-    size_t len = strlen(str);
+    memmove(buffer->buf, buffer->pos, remaining);
+
+    int len = strlen(str);
     if (len > available) {
         len = available;
     }

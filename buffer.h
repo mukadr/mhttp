@@ -16,7 +16,9 @@ HttpBuffer *http_buffer_new(size_t size);
 
 void http_buffer_free(HttpBuffer *buffer);
 
-size_t http_buffer_concat(HttpBuffer *buffer, const char *str);
+void http_buffer_reset(HttpBuffer *buffer);
+
+int http_buffer_concat(HttpBuffer *buffer, const char *str);
 
 HttpSlice http_buffer_next_line(HttpBuffer *buffer);
 
