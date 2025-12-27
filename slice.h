@@ -1,6 +1,8 @@
 #ifndef MHTTP_SLICE_H
 #define MHTTP_SLICE_H
 
+#include <stdbool.h>
+
 typedef struct HttpSlice {
     char *begin;
     char *end; // 1 after the last valid byte
@@ -26,5 +28,7 @@ static inline void slice_advance(HttpSlice *slice, int n)
     }
     slice->begin += n;
 }
+
+bool slice_match(HttpSlice *slice, const char *str);
 
 #endif // MHTTP_SLICE_H

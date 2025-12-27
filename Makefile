@@ -3,6 +3,7 @@ CFLAGS = -O2 -Wall -Werror=implicit-function-declaration -std=c99
 
 OBJS  = buffer.o
 OBJS += request.o
+OBJS += slice.o
 OBJS += test.o
 OBJS += test-buffer.o
 OBJS += test-request.o

@@ -5,14 +5,8 @@
 
 static HttpResult http_request_parse_method(HttpRequest *request, HttpSlice line)
 {
-    if (slice_len(&line) < 4) {
-        return HTTP_ERROR;
-    }
-
-    if (!memcmp(line.begin, "GET ", 4)) {
+    if (slice_match(&line, "GET ")) {
         request->method = HTTP_METHOD_GET;
-
-        slice_advance(&line, 4);
 
         // parse URI
         size_t uri_len = 0;
@@ -36,9 +30,7 @@ static HttpResult http_request_parse_method(HttpRequest *request, HttpSlice line
         }
 
         // parse HTTP version
-        if (slice_len(&line) >= 5 && !memcmp(line.begin, "HTTP/", 5)) {
-            slice_advance(&line, 5);
-
+        if (slice_match(&line, "HTTP/")) {
             int c = slice_next(&line);
             if (c < '0' || c > '9') {
                 return HTTP_ERROR;
