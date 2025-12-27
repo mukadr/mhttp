@@ -36,7 +36,7 @@ static inline void slice_advance(HttpSlice *slice, int n)
 
 bool slice_match(HttpSlice *slice, const char *str);
 
-bool slice_at_endofline(const HttpSlice *slice);
+bool slice_eol(const HttpSlice *slice);
 
 bool slice_eq(const HttpSlice *slice, const char *str);
 

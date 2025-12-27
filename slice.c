@@ -18,7 +18,7 @@ bool slice_match(HttpSlice *slice, const char *str)
     return true;
 }
 
-bool slice_at_endofline(const HttpSlice *slice)
+bool slice_eol(const HttpSlice *slice)
 {
     if (slice_len(slice) > 0) {
         if (slice->begin[0] == '\n') {
