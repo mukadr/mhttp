@@ -136,7 +136,7 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
 {
     int c;
 
-    HttpHeader *header = malloc(sizeof(*header));
+    HttpHeader *header = calloc(1, sizeof(*header));
     if (!header) {
         return HTTP_ERROR;
     }
@@ -157,7 +157,6 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
         }
         header->name[name_len++] = (char)c;
     }
-    header->name[name_len] = '\0';
 
     c = slice_next(line);
     if (c != ' ') {
@@ -177,9 +176,7 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
         }
         header->value[value_len++] = (char)c;
     }
-    header->value[value_len] = '\0';
 
-    header->next = NULL;
     *out_header = header;
 
     return HTTP_OK;
