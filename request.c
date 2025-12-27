@@ -88,7 +88,7 @@ static HttpResult parse_method_head(HttpRequest *request, HttpSlice line)
     return parse_http_version(request, &line);
 }
 
-static HttpResult http_request_parse_method(HttpRequest *request, HttpSlice line)
+static HttpResult parse_method(HttpRequest *request, HttpSlice line)
 {
     if (slice_match(&line, "GET ")) {
         return parse_method_get(request, line);
@@ -101,13 +101,83 @@ static HttpResult http_request_parse_method(HttpRequest *request, HttpSlice line
     return HTTP_ERROR;
 }
 
+static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
+{
+    HttpHeader **header_ptr = &request->headers;
+
+    while (true) {
+        int c;
+
+        HttpSlice line = http_buffer_next_line(buffer);
+        if (!line.begin) {
+            return HTTP_REQUIRES_MORE_DATA;
+        }
+        if (slice_empty(&line)) {
+            break;
+        }
+
+        HttpHeader *header = malloc(sizeof(*header));
+        if (!header) {
+            return HTTP_ERROR;
+        }
+
+        size_t name_len = 0;
+        while (true) {
+            c = slice_next(&line);
+            if (c == ':') {
+                break;
+            }
+            if (c == '\r' || c == '\n' || c == -1) {
+                free(header);
+                return HTTP_ERROR;
+            }
+            if (name_len == sizeof(header->name) - 1) {
+                free(header);
+                return HTTP_ERROR;
+            }
+            header->name[name_len++] = (char)c;
+        }
+        header->name[name_len] = '\0';
+
+        c = slice_next(&line);
+        if (c != ' ') {
+            free(header);
+            return HTTP_ERROR;
+        }
+
+        size_t value_len = 0;
+        while (true) {
+            c = slice_next(&line);
+            if (c == '\r' || c == '\n' || c == -1) {
+                break;
+            }
+            if (value_len == sizeof(header->value) - 1) {
+                free(header);
+                return HTTP_ERROR;
+            }
+            header->value[value_len++] = (char)c;
+        }
+        header->value[value_len] = '\0';
+
+        header->next = NULL;
+        *header_ptr = header;
+        header_ptr = &header->next;
+    }
+
+    return HTTP_OK;
+}
+
 HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer)
 {
     HttpSlice line = http_buffer_next_line(buffer);
-
     if (!slice_len(&line)) {
         return HTTP_REQUIRES_MORE_DATA;
     }
 
-    return http_request_parse_method(request, line);
+    HttpResult ret = parse_method(request, line);
+    if (ret != HTTP_OK) {
+        return ret;
+    }
+
+    return parse_headers(request, buffer);
 }
