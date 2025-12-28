@@ -18,23 +18,23 @@ void test_malformed_request(void)
 
     http_buffer_concat(buffer, "BLA\n");
     ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_ERROR);
+    assert(ret == HTTP_BAD_REQUEST);
 
     http_buffer_concat(buffer, "GET\n");
     ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_ERROR);
+    assert(ret == HTTP_BAD_REQUEST);
 
     http_buffer_concat(buffer, "GET \n");
     ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_ERROR);
+    assert(ret == HTTP_BAD_REQUEST);
 
     http_buffer_concat(buffer, "GET / HTTP\n");
     ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_ERROR);
+    assert(ret == HTTP_BAD_REQUEST);
 
     http_buffer_concat(buffer, "GET / HTTP2.\n");
     ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_ERROR);
+    assert(ret == HTTP_BAD_REQUEST);
 
     http_buffer_concat(buffer,
         "GET "
@@ -47,7 +47,7 @@ void test_malformed_request(void)
         "\r\n");
 
     ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_URI_TOO_LONG);
+    assert(ret == HTTP_BAD_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);

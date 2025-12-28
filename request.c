@@ -37,7 +37,7 @@ static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
         }
 
         if (len == sizeof(request->uri) - 1) {
-            return HTTP_URI_TOO_LONG;
+            return HTTP_BAD_REQUEST;
         }
 
         request->uri[len++] = (char)c;
@@ -45,7 +45,7 @@ static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
 
     request->uri[len] = '\0';
 
-    return len ? HTTP_OK : HTTP_ERROR;
+    return len ? HTTP_OK : HTTP_BAD_REQUEST;
 }
 
 static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
@@ -53,19 +53,19 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
     if (slice_match(line, "HTTP/")) {
         int c = slice_next(line);
         if (c < '0' || c > '9') {
-            return HTTP_ERROR;
+            return HTTP_BAD_REQUEST;
         }
 
         request->http_major = c - '0';
 
         c = slice_next(line);
         if (c != '.') {
-            return HTTP_ERROR;
+            return HTTP_BAD_REQUEST;
         }
 
         c = slice_next(line);
         if (c < '0' || c > '9') {
-            return HTTP_ERROR;
+            return HTTP_BAD_REQUEST;
         }
 
         request->http_minor = c - '0';
@@ -73,14 +73,14 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
         slice_next(line);
 
         if (!slice_eol(line)) {
-            return HTTP_ERROR;
+            return HTTP_BAD_REQUEST;
         }
     } else if (slice_eol(line)) {
         // HTTP/0.9 (no version present)
         request->http_major = 0;
         request->http_minor = 9;
     } else {
-        return HTTP_ERROR;
+        return HTTP_BAD_REQUEST;
     }
 
     return HTTP_OK;
@@ -125,7 +125,7 @@ static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
         return parse_method_head(request, line);
     }
 
-    return HTTP_ERROR;
+    return HTTP_BAD_REQUEST;
 }
 
 static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader **out_header)
@@ -134,7 +134,7 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
 
     HttpHeader *header = calloc(1, sizeof(*header));
     if (!header) {
-        return HTTP_ERROR;
+        return HTTP_INTERNAL_ERROR;
     }
 
     size_t name_len = 0;
@@ -145,11 +145,11 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
         }
         if (c == '\r' || c == '\n' || c == -1) {
             free(header);
-            return HTTP_ERROR;
+            return HTTP_BAD_REQUEST;
         }
         if (name_len == sizeof(header->name) - 1) {
             free(header);
-            return HTTP_ERROR;
+            return HTTP_BAD_REQUEST;
         }
         header->name[name_len++] = (char)c;
     }
@@ -157,7 +157,7 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
     c = slice_next(line);
     if (c != ' ') {
         free(header);
-        return HTTP_ERROR;
+        return HTTP_BAD_REQUEST;
     }
 
     size_t value_len = 0;
@@ -168,7 +168,7 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
         }
         if (value_len == sizeof(header->value) - 1) {
             free(header);
-            return HTTP_ERROR;
+            return HTTP_BAD_REQUEST;
         }
         header->value[value_len++] = (char)c;
     }
