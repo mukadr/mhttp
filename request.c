@@ -173,6 +173,11 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
         header->value[value_len++] = (char)c;
     }
 
+    if (!slice_eol(line)) {
+        free(header);
+        return HTTP_BAD_REQUEST;
+    }
+
     *out_header = header;
 
     return HTTP_OK;
