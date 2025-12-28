@@ -6,11 +6,10 @@
 HttpRequest *http_request_new(void)
 {
     HttpRequest *request = calloc(1, sizeof(*request));
-    if (!request) {
-        return NULL;
-    }
 
-    request->state = HTTP_STATE_INITIAL;
+    if (request) {
+        request->state = HTTP_STATE_INITIAL;
+    }
 
     return request;
 }
