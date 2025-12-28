@@ -7,7 +7,7 @@
 #include "buffer.h"
 
 typedef enum HttpMethod {
-    HTTP_METHOD_GET = 0,
+    HTTP_METHOD_GET,
     HTTP_METHOD_HEAD
 } HttpMethod;
 
@@ -18,7 +18,7 @@ typedef struct HttpHeader {
 } HttpHeader;
 
 typedef enum HttpRequestState {
-    HTTP_STATE_INITIAL = 0,
+    HTTP_STATE_INITIAL,
     HTTP_STATE_REQUEST_HEADERS,
     HTTP_STATE_DONE
 } HttpRequestState;
