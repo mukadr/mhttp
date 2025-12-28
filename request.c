@@ -84,28 +84,28 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
     return HTTP_OK;
 }
 
-static HttpResult parse_method_get(HttpRequest *request, HttpSlice line)
+static HttpResult parse_method_get(HttpRequest *request, HttpSlice *line)
 {
     request->method = HTTP_METHOD_GET;
 
-    HttpResult ret = parse_uri(request, &line);
+    HttpResult ret = parse_uri(request, line);
     if (ret != HTTP_OK) {
         return ret;
     }
 
-    return parse_http_version(request, &line);
+    return parse_http_version(request, line);
 }
 
-static HttpResult parse_method_head(HttpRequest *request, HttpSlice line)
+static HttpResult parse_method_head(HttpRequest *request, HttpSlice *line)
 {
     request->method = HTTP_METHOD_HEAD;
 
-    HttpResult ret = parse_uri(request, &line);
+    HttpResult ret = parse_uri(request, line);
     if (ret != HTTP_OK) {
         return ret;
     }
 
-    return parse_http_version(request, &line);
+    return parse_http_version(request, line);
 }
 
 static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
@@ -116,11 +116,11 @@ static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
     }
 
     if (slice_match(&line, "GET ")) {
-        return parse_method_get(request, line);
+        return parse_method_get(request, &line);
     }
 
     if (slice_match(&line, "HEAD ")) {
-        return parse_method_head(request, line);
+        return parse_method_head(request, &line);
     }
 
     return HTTP_BAD_REQUEST;
