@@ -53,6 +53,51 @@ void test_malformed_request(void)
     http_buffer_free(buffer);
 }
 
+void test_bad_line_ending(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest *request = http_request_new();
+    HttpResult ret;
+
+    http_buffer_concat(
+        buffer,
+        "GET /index.html HTTP/1.0 \r\n"
+    );
+
+    ret = http_request_parse(request, buffer);
+    assert(ret == HTTP_BAD_REQUEST);
+
+    http_buffer_concat(
+        buffer,
+        "GET /index.html HTTP/1.0\r \n"
+    );
+
+    ret = http_request_parse(request, buffer);
+    assert(ret == HTTP_BAD_REQUEST);
+
+    http_buffer_concat(
+        buffer,
+        "GET /index.html HTTP/1.0\r\n"
+        "\r \n"
+    );
+
+    ret = http_request_parse(request, buffer);
+    assert(ret == HTTP_BAD_REQUEST);
+
+    http_buffer_concat(
+        buffer,
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.example.com\r \n"
+        "\r\n"
+    );
+
+    ret = http_request_parse(request, buffer);
+    assert(ret == HTTP_BAD_REQUEST);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
 void test_get_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
@@ -370,6 +415,7 @@ void test_head_request_with_headers_requiring_more_data(void)
 void test_request(void)
 {
     test_malformed_request();
+    test_bad_line_ending();
     test_get_request();
     test_get_request_with_http_version_1_0();
     test_get_request_with_http_version_1_1();

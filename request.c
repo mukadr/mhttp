@@ -70,8 +70,6 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
 
         request->http_minor = c - '0';
 
-        slice_next(line);
-
         if (!slice_eol(line)) {
             return HTTP_BAD_REQUEST;
         }
