@@ -17,14 +17,14 @@ typedef struct HttpHeader {
     struct HttpHeader *next;
 } HttpHeader;
 
-typedef enum HttpRequestState {
-    HTTP_STATE_REQUEST_LINE,
-    HTTP_STATE_HEADERS,
-    HTTP_STATE_DONE
-} HttpRequestState;
+typedef enum HttpParseState {
+    HTTP_PARSE_REQUEST_LINE,
+    HTTP_PARSE_HEADERS,
+    HTTP_PARSE_DONE
+} HttpParseState;
 
 typedef struct HttpRequest {
-    HttpRequestState state;
+    HttpParseState state;
     int http_major;
     int http_minor;
     HttpMethod method;
