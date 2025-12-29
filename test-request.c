@@ -38,7 +38,6 @@ void test_malformed_request(void)
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
         "\r\n");
-
     assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_request_free(request);
@@ -54,14 +53,12 @@ void test_bad_line_ending(void)
         buffer,
         "GET /index.html HTTP/1.0 \r\n"
     );
-
     assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_buffer_concat(
         buffer,
         "GET /index.html HTTP/1.0\r \n"
     );
-
     assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_buffer_concat(
@@ -69,7 +66,6 @@ void test_bad_line_ending(void)
         "GET /index.html HTTP/1.0\r\n"
         "\r \n"
     );
-
     assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_buffer_concat(
@@ -78,7 +74,6 @@ void test_bad_line_ending(void)
         "Host: www.example.com\r \n"
         "\r\n"
     );
-
     assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_request_free(request);
