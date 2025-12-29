@@ -228,3 +228,30 @@ HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer)
 
     return HTTP_OK;
 }
+
+int http_request_header_count(const HttpRequest *request)
+{
+    HttpHeader *header = request->headers;
+    int count = 0;
+
+    while (header) {
+        count++;
+        header = header->next;
+    }
+
+    return count;
+}
+
+const char *http_request_get_header(const HttpRequest *request, const char *name)
+{
+    const HttpHeader *header = request->headers;
+
+    while (header) {
+        if (!strcmp(header->name, name)) {
+            return header->value;
+        }
+        header = header->next;
+    }
+
+    return NULL;
+}

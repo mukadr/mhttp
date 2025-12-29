@@ -187,27 +187,15 @@ void test_get_request_with_headers(void)
     assert(request->http_minor == 0);
     assert(request->method == HTTP_METHOD_GET);
     assert(!strcmp(request->uri, "/"));
+    assert(http_request_header_count(request) == 2);
 
-    bool found_host = false;
-    bool found_user_agent = false;
-    HttpHeader *header = request->headers;
-    while (header) {
-        if (!strcmp(header->name, "Host")) {
-            assert(!found_host);
-            assert(!strcmp(header->value, "www.example.com"));
-            found_host = true;
-        } else if (!strcmp(header->name, "User-Agent")) {
-            assert(!found_user_agent);
-            assert(!strcmp(header->value, "TestAgent/1.0"));
-            found_user_agent = true;
-        } else {
-            assert(false);
-        }
-        header = header->next;
-    }
+    const char *host = http_request_get_header(request, "Host");
+    assert(host);
+    assert(!strcmp(host, "www.example.com"));
 
-    assert(found_host);
-    assert(found_user_agent);
+    const char *user_agent = http_request_get_header(request, "User-Agent");
+    assert(user_agent);
+    assert(!strcmp(user_agent, "TestAgent/1.0"));
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -380,33 +368,19 @@ void test_head_request_with_headers_requiring_more_data(void)
     assert(request->http_minor == 0);
     assert(request->method == HTTP_METHOD_HEAD);
     assert(!strcmp(request->uri, "/tralala.html"));
+    assert(http_request_header_count(request) == 3);
 
-    bool found_host = false;
-    bool found_apikey = false;
-    bool found_user_agent = false;
-    HttpHeader *header = request->headers;
-    while (header) {
-        if (!strcmp(header->name, "Host")) {
-            assert(!found_host);
-            assert(!strcmp(header->value, "www.example.com"));
-            found_host = true;
-        } else if (!strcmp(header->name, "Api-Key")) {
-            assert(!found_apikey);
-            assert(!strcmp(header->value, "123456"));
-            found_apikey = true;
-        } else if (!strcmp(header->name, "User-Agent")) {
-            assert(!found_user_agent);
-            assert(!strcmp(header->value, "TestAgent/1.0"));
-            found_user_agent = true;
-        } else {
-            assert(false);
-        }
-        header = header->next;
-    }
+    const char *host = http_request_get_header(request, "Host");
+    assert(host);
+    assert(!strcmp(host, "www.example.com"));
 
-    assert(found_host);
-    assert(found_apikey);
-    assert(found_user_agent);
+    const char *api_key = http_request_get_header(request, "Api-Key");
+    assert(api_key);
+    assert(!strcmp(api_key, "123456"));
+
+    const char *user_agent = http_request_get_header(request, "User-Agent");
+    assert(user_agent);
+    assert(!strcmp(user_agent, "TestAgent/1.0"));
 
     http_request_free(request);
     http_buffer_free(buffer);

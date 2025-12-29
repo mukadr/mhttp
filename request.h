@@ -38,4 +38,8 @@ void http_request_free(HttpRequest *request);
 
 HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer);
 
+int http_request_header_count(const HttpRequest *request);
+
+const char *http_request_get_header(const HttpRequest *request, const char *name);
+
 #endif // MHTTP_REQUEST_H
