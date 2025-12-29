@@ -10,31 +10,24 @@ void test_malformed_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(512);
     HttpRequest *request = http_request_new();
-    HttpResult ret;
 
     http_buffer_concat(buffer, "X");
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(buffer, "BLA\n");
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_buffer_concat(buffer, "GET\n");
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_buffer_concat(buffer, "GET \n");
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_buffer_concat(buffer, "GET / HTTP\n");
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_buffer_concat(buffer, "GET / HTTP2.\n");
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_buffer_concat(buffer,
         "GET "
@@ -46,8 +39,7 @@ void test_malformed_request(void)
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
         "\r\n");
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -57,23 +49,20 @@ void test_bad_line_ending(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
-    HttpResult ret;
 
     http_buffer_concat(
         buffer,
         "GET /index.html HTTP/1.0 \r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_buffer_concat(
         buffer,
         "GET /index.html HTTP/1.0\r \n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_buffer_concat(
         buffer,
@@ -81,8 +70,7 @@ void test_bad_line_ending(void)
         "\r \n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_buffer_concat(
         buffer,
@@ -91,8 +79,7 @@ void test_bad_line_ending(void)
         "\r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -102,7 +89,6 @@ void test_get_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
-    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -110,12 +96,11 @@ void test_get_request(void)
         "\r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_OK);
-    assert(request->http_major == 0);
-    assert(request->http_minor == 9);
+    assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_GET);
     assert(!strcmp(request->uri, "/"));
+    assert(request->http_major == 0);
+    assert(request->http_minor == 9);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -125,7 +110,6 @@ void test_get_request_with_http_version_1_0(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
-    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -133,12 +117,11 @@ void test_get_request_with_http_version_1_0(void)
         "\r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_OK);
-    assert(request->http_major == 1);
-    assert(request->http_minor == 0);
+    assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_GET);
     assert(!strcmp(request->uri, "/index.html"));
+    assert(request->http_major == 1);
+    assert(request->http_minor == 0);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -148,7 +131,6 @@ void test_get_request_with_http_version_1_1(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
-    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -156,12 +138,11 @@ void test_get_request_with_http_version_1_1(void)
         "\r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_OK);
-    assert(request->http_major == 1);
-    assert(request->http_minor == 1);
+    assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_GET);
     assert(!strcmp(request->uri, "/static/chat.png"));
+    assert(request->http_major == 1);
+    assert(request->http_minor == 1);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -171,7 +152,6 @@ void test_get_request_with_headers(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
-    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -181,12 +161,14 @@ void test_get_request_with_headers(void)
         "\r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_OK);
-    assert(request->http_major == 1);
-    assert(request->http_minor == 0);
+    // Request
+    assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_GET);
     assert(!strcmp(request->uri, "/"));
+    assert(request->http_major == 1);
+    assert(request->http_minor == 0);
+
+    // Headers
     assert(http_request_header_count(request) == 2);
 
     const char *host = http_request_get_header(request, "Host");
@@ -205,7 +187,6 @@ void test_head_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
-    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -213,12 +194,11 @@ void test_head_request(void)
         "\r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_OK);
-    assert(request->http_major == 0);
-    assert(request->http_minor == 9);
+    assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_HEAD);
     assert(!strcmp(request->uri, "/"));
+    assert(request->http_major == 0);
+    assert(request->http_minor == 9);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -228,7 +208,6 @@ void test_head_request_with_http_version_1_0(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
-    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -236,12 +215,11 @@ void test_head_request_with_http_version_1_0(void)
         "\r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_OK);
-    assert(request->http_major == 1);
-    assert(request->http_minor == 0);
+    assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_HEAD);
     assert(!strcmp(request->uri, "/index.html"));
+    assert(request->http_major == 1);
+    assert(request->http_minor == 0);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -251,7 +229,6 @@ void test_head_request_with_http_version_1_1(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
-    HttpResult ret;
 
     http_buffer_concat(
         buffer,
@@ -259,12 +236,11 @@ void test_head_request_with_http_version_1_1(void)
         "\r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_OK);
-    assert(request->http_major == 1);
-    assert(request->http_minor == 1);
+    assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_HEAD);
     assert(!strcmp(request->uri, "/static/chat.png"));
+    assert(request->http_major == 1);
+    assert(request->http_minor == 1);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -274,100 +250,91 @@ void test_head_request_with_headers_requiring_more_data(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
-    HttpResult ret;
 
     http_buffer_concat(
         buffer,
         "HEAD /tralala"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(
         buffer,
         ".html HTT"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(
         buffer,
         "P/1.0\r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(
         buffer,
         "Host"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(
         buffer,
         ":"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(
         buffer,
         " www.example"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(
         buffer,
         ".com\r\nApi-Key: 123456\r\nUse"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(
         buffer,
         "r-Agen"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(
         buffer,
         "t: TestAgent"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(
         buffer,
         "/1.0\r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
     http_buffer_concat(
         buffer,
         "\r\n"
     );
 
-    ret = http_request_parse(request, buffer);
-    assert(ret == HTTP_OK);
+    assert(http_request_parse(request, buffer) == HTTP_OK);
 
-    assert(request->http_major == 1);
-    assert(request->http_minor == 0);
+    // Request
     assert(request->method == HTTP_METHOD_HEAD);
     assert(!strcmp(request->uri, "/tralala.html"));
+    assert(request->http_major == 1);
+    assert(request->http_minor == 0);
+
+    // Headers
     assert(http_request_header_count(request) == 3);
 
     const char *host = http_request_get_header(request, "Host");
