@@ -215,10 +215,10 @@ HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer)
         if (ret != HTTP_OK) {
             return ret;
         }
-        request->state = HTTP_STATE_REQUEST_HEADERS;
+        request->state = HTTP_STATE_HEADERS;
     }
 
-    if (request->state == HTTP_STATE_REQUEST_HEADERS) {
+    if (request->state == HTTP_STATE_HEADERS) {
         HttpResult ret = parse_headers(request, buffer);
         if (ret != HTTP_OK) {
             return ret;
