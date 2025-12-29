@@ -251,81 +251,37 @@ void test_head_request_with_headers_requiring_more_data(void)
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
-        buffer,
-        "HEAD /tralala"
-    );
-
+    http_buffer_concat(buffer, "HEAD /tralala");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
-    http_buffer_concat(
-        buffer,
-        ".html HTT"
-    );
-
+    http_buffer_concat(buffer, ".html HTT");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
-    http_buffer_concat(
-        buffer,
-        "P/1.0\r\n"
-    );
-
+    http_buffer_concat(buffer, "P/1.0\r\n");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
-    http_buffer_concat(
-        buffer,
-        "Host"
-    );
-
+    http_buffer_concat(buffer, "Host");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
-    http_buffer_concat(
-        buffer,
-        ":"
-    );
-
+    http_buffer_concat(buffer, ":");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
-    http_buffer_concat(
-        buffer,
-        " www.example"
-    );
-
+    http_buffer_concat(buffer, " www.example");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
-    http_buffer_concat(
-        buffer,
-        ".com\r\nApi-Key: 123456\r\nUse"
-    );
-
+    http_buffer_concat(buffer, ".com\r\nApi-Key: 123456\r\nUse");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
-    http_buffer_concat(
-        buffer,
-        "r-Agen"
-    );
-
+    http_buffer_concat(buffer, "r-Agen");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
-    http_buffer_concat(
-        buffer,
-        "t: TestAgent"
-    );
-
+    http_buffer_concat(buffer, "t: TestAgent");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
-    http_buffer_concat(
-        buffer,
-        "/1.0\r\n"
-    );
-
+    http_buffer_concat(buffer, "/1.0\r\n");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
 
-    http_buffer_concat(
-        buffer,
-        "\r\n"
-    );
-
+    http_buffer_concat(buffer, "\r\n");
     assert(http_request_parse(request, buffer) == HTTP_OK);
 
     // Request
