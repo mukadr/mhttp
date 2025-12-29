@@ -18,7 +18,7 @@ typedef struct HttpHeader {
 } HttpHeader;
 
 typedef enum HttpRequestState {
-    HTTP_STATE_INITIAL,
+    HTTP_STATE_REQUEST_LINE,
     HTTP_STATE_HEADERS,
     HTTP_STATE_DONE
 } HttpRequestState;

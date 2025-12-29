@@ -8,7 +8,7 @@ HttpRequest *http_request_new(void)
     HttpRequest *request = calloc(1, sizeof(*request));
 
     if (request) {
-        request->state = HTTP_STATE_INITIAL;
+        request->state = HTTP_STATE_REQUEST_LINE;
     }
 
     return request;
@@ -210,7 +210,7 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
 
 HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer)
 {
-    if (request->state == HTTP_STATE_INITIAL) {
+    if (request->state == HTTP_STATE_REQUEST_LINE) {
         HttpResult ret = parse_method(request, buffer);
         if (ret != HTTP_OK) {
             return ret;
