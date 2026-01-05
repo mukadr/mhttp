@@ -20,7 +20,7 @@ static inline bool slice_empty(const HttpSlice *slice)
 
 static inline int slice_peek(HttpSlice *slice)
 {
-    if (slice->begin >= slice->end) {
+    if (slice->begin == slice->end) {
         return -1;
     }
     return *slice->begin;
@@ -28,7 +28,7 @@ static inline int slice_peek(HttpSlice *slice)
 
 static inline int slice_next(HttpSlice *slice)
 {
-    if (slice->begin >= slice->end - 1) {
+    if (slice->begin == slice->end) {
         return -1;
     }
     return *(++slice->begin);
