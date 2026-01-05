@@ -32,14 +32,15 @@ static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
     size_t len = 0;
     while (true) {
         int c = slice_peek(line);
-        if (c == ' ') {
-            slice_advance(line, 1);
-            break;
-        }
         if (c == '\r' || c == '\n' || c == -1) {
             break;
         }
-        slice_advance(line, 1);
+
+        slice_skip(line, 1);
+
+        if (c == ' ') {
+            break;
+        }
 
         if (len == sizeof(request->uri) - 1) {
             return HTTP_BAD_REQUEST;
@@ -75,7 +76,7 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
 
         request->http_minor = c - '0';
 
-        slice_advance(line, 1);
+        slice_skip(line, 1);
 
         if (!slice_eol(line)) {
             return HTTP_BAD_REQUEST;
@@ -157,7 +158,7 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
             return HTTP_BAD_REQUEST;
         }
         header->name[name_len++] = (char)c;
-        slice_advance(line, 1);
+        slice_skip(line, 1);
     }
 
     c = slice_next(line);

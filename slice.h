@@ -34,7 +34,7 @@ static inline int slice_next(HttpSlice *slice)
     return *(++slice->begin);
 }
 
-static inline void slice_advance(HttpSlice *slice, int n)
+static inline void slice_skip(HttpSlice *slice, int n)
 {
     if (n > slice_len(slice)) {
         n = slice_len(slice);
