@@ -14,7 +14,7 @@ bool slice_match(HttpSlice *slice, const char *str)
         return false;
     }
 
-    slice_skip(slice, len);
+    slice->begin += len;
     return true;
 }
 

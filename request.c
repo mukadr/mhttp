@@ -36,7 +36,7 @@ static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
             break;
         }
 
-        slice_skip(line, 1);
+        slice_skip(line);
 
         if (c == ' ') {
             break;
@@ -76,7 +76,7 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
 
         request->http_minor = c - '0';
 
-        slice_skip(line, 1);
+        slice_skip(line);
 
         if (!slice_eol(line)) {
             return HTTP_BAD_REQUEST;
@@ -158,7 +158,7 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
             return HTTP_BAD_REQUEST;
         }
         header->name[name_len++] = (char)c;
-        slice_skip(line, 1);
+        slice_skip(line);
     }
 
     c = slice_next(line);

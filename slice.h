@@ -34,12 +34,11 @@ static inline int slice_next(HttpSlice *slice)
     return *(++slice->begin);
 }
 
-static inline void slice_skip(HttpSlice *slice, int n)
+static inline void slice_skip(HttpSlice *slice)
 {
-    if (n > slice_len(slice)) {
-        n = slice_len(slice);
+    if (slice_len(slice)) {
+        slice->begin++;
     }
-    slice->begin += n;
 }
 
 bool slice_match(HttpSlice *slice, const char *str);
