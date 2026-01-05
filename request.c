@@ -31,10 +31,15 @@ static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
 {
     size_t len = 0;
     while (true) {
-        int c = slice_next(line);
-        if (c == ' ' || c == '\r' || c == '\n' || c == -1) {
+        int c = slice_peek(line);
+        if (c == ' ') {
+            slice_advance(line, 1);
             break;
         }
+        if (c == '\r' || c == '\n' || c == -1) {
+            break;
+        }
+        slice_advance(line, 1);
 
         if (len == sizeof(request->uri) - 1) {
             return HTTP_BAD_REQUEST;
@@ -51,7 +56,7 @@ static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
 static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
 {
     if (slice_match(line, "HTTP/")) {
-        int c = slice_next(line);
+        int c = slice_peek(line);
         if (c < '0' || c > '9') {
             return HTTP_BAD_REQUEST;
         }
@@ -69,6 +74,8 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
         }
 
         request->http_minor = c - '0';
+
+        slice_advance(line, 1);
 
         if (!slice_eol(line)) {
             return HTTP_BAD_REQUEST;
@@ -137,7 +144,7 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
 
     size_t name_len = 0;
     while (true) {
-        c = slice_next(line);
+        c = slice_peek(line);
         if (c == ':') {
             break;
         }
@@ -150,6 +157,7 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
             return HTTP_BAD_REQUEST;
         }
         header->name[name_len++] = (char)c;
+        slice_advance(line, 1);
     }
 
     c = slice_next(line);

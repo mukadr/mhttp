@@ -51,6 +51,18 @@ void test_bad_line_ending(void)
 
     http_buffer_concat(
         buffer,
+        "GET /index.html HTTP/1.0\n"
+    );
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+
+    http_buffer_concat(
+        buffer,
+        "GET /index.html HTTP/1.0\r"
+    );
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+
+    http_buffer_concat(
+        buffer,
         "GET /index.html HTTP/1.0 \r\n"
     );
     assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
@@ -64,7 +76,7 @@ void test_bad_line_ending(void)
     http_buffer_concat(
         buffer,
         "GET /index.html HTTP/1.0\r\n"
-        "\r \n"
+        "\n"
     );
     assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
 

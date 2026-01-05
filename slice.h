@@ -18,12 +18,20 @@ static inline bool slice_empty(const HttpSlice *slice)
     return !slice_len(slice);
 }
 
-static inline int slice_next(HttpSlice *slice)
+static inline int slice_peek(HttpSlice *slice)
 {
-    if (slice->begin == slice->end) {
+    if (slice->begin >= slice->end) {
         return -1;
     }
-    return *slice->begin++;
+    return *slice->begin;
+}
+
+static inline int slice_next(HttpSlice *slice)
+{
+    if (slice->begin >= slice->end - 1) {
+        return -1;
+    }
+    return *(++slice->begin);
 }
 
 static inline void slice_advance(HttpSlice *slice, int n)
