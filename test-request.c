@@ -11,6 +11,9 @@ void test_malformed_request(void)
     HttpBuffer *buffer = http_buffer_new(512);
     HttpRequest *request = http_request_new();
 
+    http_buffer_concat(buffer, "");
+    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+
     http_buffer_concat(buffer, "X");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
     http_buffer_reset(buffer);
