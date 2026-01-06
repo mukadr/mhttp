@@ -16,6 +16,10 @@ HttpRequest *http_request_new(void)
 
 void http_request_free(HttpRequest *request)
 {
+    if (!request) {
+        return;
+    }
+
     HttpHeader *header = request->headers;
 
     while (header) {
