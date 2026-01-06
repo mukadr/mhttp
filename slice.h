@@ -28,7 +28,7 @@ static inline int slice_peek(HttpSlice *slice)
 
 static inline int slice_next(HttpSlice *slice)
 {
-    if (slice->begin == slice->end) {
+    if (slice->begin + 1 >= slice->end) {
         return -1;
     }
     return *(++slice->begin);
