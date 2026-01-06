@@ -13,6 +13,7 @@ void test_malformed_request(void)
 
     http_buffer_concat(buffer, "X");
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    http_buffer_reset(buffer);
 
     http_buffer_concat(buffer, "BLA\n");
     assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
@@ -60,6 +61,7 @@ void test_bad_line_ending(void)
         "GET /index.html HTTP/1.0\r"
     );
     assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    http_buffer_reset(buffer);
 
     http_buffer_concat(
         buffer,
