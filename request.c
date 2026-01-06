@@ -240,7 +240,7 @@ HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer)
 
 int http_request_header_count(const HttpRequest *request)
 {
-    HttpHeader *header = request->headers;
+    const HttpHeader *header = request->headers;
     int count = 0;
 
     while (header) {
