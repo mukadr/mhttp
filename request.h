@@ -25,8 +25,7 @@ typedef enum HttpParseState {
 
 typedef struct HttpRequest {
     HttpParseState state;
-    int http_major;
-    int http_minor;
+    int version;
     HttpMethod method;
     char uri[256];
     HttpHeader *headers;

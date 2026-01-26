@@ -111,8 +111,7 @@ void test_get_request(void)
     assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_GET);
     assert(!strcmp(request->uri, "/"));
-    assert(request->http_major == 0);
-    assert(request->http_minor == 9);
+    assert(request->version == 9);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -132,8 +131,7 @@ void test_get_request_with_http_version_1_0(void)
     assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_GET);
     assert(!strcmp(request->uri, "/index.html"));
-    assert(request->http_major == 1);
-    assert(request->http_minor == 0);
+    assert(request->version == 10);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -153,8 +151,7 @@ void test_get_request_with_http_version_1_1(void)
     assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_GET);
     assert(!strcmp(request->uri, "/static/chat.png"));
-    assert(request->http_major == 1);
-    assert(request->http_minor == 1);
+    assert(request->version == 11);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -177,8 +174,7 @@ void test_get_request_with_headers(void)
     assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_GET);
     assert(!strcmp(request->uri, "/"));
-    assert(request->http_major == 1);
-    assert(request->http_minor == 0);
+    assert(request->version == 10);
 
     // Headers
     assert(http_request_header_count(request) == 2);
@@ -209,8 +205,7 @@ void test_head_request(void)
     assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_HEAD);
     assert(!strcmp(request->uri, "/"));
-    assert(request->http_major == 0);
-    assert(request->http_minor == 9);
+    assert(request->version == 9);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -230,8 +225,7 @@ void test_head_request_with_http_version_1_0(void)
     assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_HEAD);
     assert(!strcmp(request->uri, "/index.html"));
-    assert(request->http_major == 1);
-    assert(request->http_minor == 0);
+    assert(request->version == 10);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -251,8 +245,7 @@ void test_head_request_with_http_version_1_1(void)
     assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(request->method == HTTP_METHOD_HEAD);
     assert(!strcmp(request->uri, "/static/chat.png"));
-    assert(request->http_major == 1);
-    assert(request->http_minor == 1);
+    assert(request->version == 11);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -299,8 +292,7 @@ void test_head_request_with_headers_requiring_more_data(void)
     // Request
     assert(request->method == HTTP_METHOD_HEAD);
     assert(!strcmp(request->uri, "/tralala.html"));
-    assert(request->http_major == 1);
-    assert(request->http_minor == 0);
+    assert(request->version == 10);
 
     // Headers
     assert(http_request_header_count(request) == 3);

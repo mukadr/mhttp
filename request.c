@@ -66,7 +66,7 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
             return HTTP_BAD_REQUEST;
         }
 
-        request->http_major = c - '0';
+        request->version = c - '0';
 
         c = slice_next(line);
         if (c != '.') {
@@ -78,7 +78,7 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
             return HTTP_BAD_REQUEST;
         }
 
-        request->http_minor = c - '0';
+        request->version = request->version * 10 + c - '0';
 
         slice_skip(line);
 
@@ -87,8 +87,7 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
         }
     } else if (slice_eol(line)) {
         // HTTP/0.9 (no version present)
-        request->http_major = 0;
-        request->http_minor = 9;
+        request->version = 9;
     } else {
         return HTTP_BAD_REQUEST;
     }
