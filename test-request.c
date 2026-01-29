@@ -251,7 +251,7 @@ void test_head_request_with_http_version_1_1(void)
     http_buffer_free(buffer);
 }
 
-void test_head_request_with_headers_requiring_more_data(void)
+void test_head_request_with_headers_needing_more_input(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -324,5 +324,5 @@ void test_request(void)
     test_head_request();
     test_head_request_with_http_version_1_0();
     test_head_request_with_http_version_1_1();
-    test_head_request_with_headers_requiring_more_data();
+    test_head_request_with_headers_needing_more_input();
 }
