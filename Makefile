@@ -26,6 +26,6 @@ test: $(OBJS)
 
 clean:
 	@echo "  CLEAN"
-	@rm -f *.o test
+	@rm -f *.o *.d test
 
 .PHONY: all check clean
