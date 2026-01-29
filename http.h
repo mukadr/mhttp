@@ -3,7 +3,7 @@
 
 typedef enum HttpResult {
     HTTP_OK,
-    HTTP_REQUIRES_MORE_DATA,
+    HTTP_NEED_MORE_INPUT,
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_ERROR
 } HttpResult;

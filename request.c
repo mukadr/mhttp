@@ -123,7 +123,7 @@ static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
 {
     HttpSlice line = http_buffer_next_line(buffer);
     if (slice_empty(&line)) {
-        return HTTP_REQUIRES_MORE_DATA;
+        return HTTP_NEED_MORE_INPUT;
     }
 
     if (slice_match(&line, "GET ")) {
@@ -203,7 +203,7 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
 
         HttpSlice line = http_buffer_next_line(buffer);
         if (slice_empty(&line)) {
-            return HTTP_REQUIRES_MORE_DATA;
+            return HTTP_NEED_MORE_INPUT;
         }
         if (slice_eol(&line)) {
             break;

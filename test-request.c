@@ -12,10 +12,10 @@ void test_malformed_request(void)
     HttpRequest *request = http_request_new();
 
     http_buffer_concat(buffer, "");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, "X");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
     http_buffer_reset(buffer);
 
     http_buffer_concat(buffer, "BLA\n");
@@ -63,7 +63,7 @@ void test_bad_line_ending(void)
         buffer,
         "GET /index.html HTTP/1.0\r"
     );
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
     http_buffer_reset(buffer);
 
     http_buffer_concat(
@@ -257,34 +257,34 @@ void test_head_request_with_headers_requiring_more_data(void)
     HttpRequest *request = http_request_new();
 
     http_buffer_concat(buffer, "HEAD /tralala");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, ".html HTT");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, "P/1.0\r\n");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, "Host");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, ":");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, " www.example");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, ".com\r\nApi-Key: 123456\r\nUse");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, "r-Agen");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, "t: TestAgent");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, "/1.0\r\n");
-    assert(http_request_parse(request, buffer) == HTTP_REQUIRES_MORE_DATA);
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, "\r\n");
     assert(http_request_parse(request, buffer) == HTTP_OK);
