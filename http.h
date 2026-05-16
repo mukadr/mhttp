@@ -10,7 +10,8 @@ typedef enum HttpResult {
 
 typedef enum HttpMethod {
     HTTP_METHOD_GET,
-    HTTP_METHOD_HEAD
+    HTTP_METHOD_HEAD,
+    HTTP_METHOD_POST
 } HttpMethod;
 
 typedef struct HttpHeader {
