@@ -16,7 +16,7 @@ static void buffer_write_raw(HttpBuffer *buffer, const void *data, size_t len)
     buffer->end = buffer->buf + remaining + len;
 }
 
-void test_malformed_request(void)
+static void test_malformed_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(512);
     HttpRequest *request = http_request_new();
@@ -58,7 +58,7 @@ void test_malformed_request(void)
     http_buffer_free(buffer);
 }
 
-void test_bad_line_ending(void)
+static void test_bad_line_ending(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -107,7 +107,7 @@ void test_bad_line_ending(void)
     http_buffer_free(buffer);
 }
 
-void test_get_request(void)
+static void test_get_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -127,7 +127,7 @@ void test_get_request(void)
     http_buffer_free(buffer);
 }
 
-void test_get_request_with_http_version_1_0(void)
+static void test_get_request_with_http_version_1_0(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -147,7 +147,7 @@ void test_get_request_with_http_version_1_0(void)
     http_buffer_free(buffer);
 }
 
-void test_get_request_with_http_version_1_1(void)
+static void test_get_request_with_http_version_1_1(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -167,7 +167,7 @@ void test_get_request_with_http_version_1_1(void)
     http_buffer_free(buffer);
 }
 
-void test_get_request_with_headers(void)
+static void test_get_request_with_headers(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -201,7 +201,7 @@ void test_get_request_with_headers(void)
     http_buffer_free(buffer);
 }
 
-void test_head_request(void)
+static void test_head_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -221,7 +221,7 @@ void test_head_request(void)
     http_buffer_free(buffer);
 }
 
-void test_head_request_with_http_version_1_0(void)
+static void test_head_request_with_http_version_1_0(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -241,7 +241,7 @@ void test_head_request_with_http_version_1_0(void)
     http_buffer_free(buffer);
 }
 
-void test_head_request_with_http_version_1_1(void)
+static void test_head_request_with_http_version_1_1(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -261,7 +261,7 @@ void test_head_request_with_http_version_1_1(void)
     http_buffer_free(buffer);
 }
 
-void test_head_request_with_headers_needing_more_input(void)
+static void test_head_request_with_headers_needing_more_input(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -323,7 +323,7 @@ void test_head_request_with_headers_needing_more_input(void)
     http_buffer_free(buffer);
 }
 
-void test_head_request_with_missing_header_name(void)
+static void test_head_request_with_missing_header_name(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
