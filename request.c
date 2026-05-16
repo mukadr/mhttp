@@ -209,9 +209,12 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
     return HTTP_OK;
 }
 
+#define HTTP_MAX_HEADERS 100
+
 static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
 {
     HttpHeader **header_ptr = &request->headers;
+    int count = 0;
 
     while (true) {
         HttpResult ret;
@@ -224,6 +227,9 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
         if (slice_eol(&line)) {
             break;
         }
+        if (count >= HTTP_MAX_HEADERS) {
+            return HTTP_BAD_REQUEST;
+        }
         ret = parse_header(request, &line, &header);
         if (ret != HTTP_OK) {
             return ret;
@@ -231,6 +237,7 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
 
         header->next = *header_ptr;
         *header_ptr = header;
+        count++;
     }
 
     return HTTP_OK;
