@@ -188,6 +188,10 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
         if (c == '\r' || c == '\n' || c == -1) {
             break;
         }
+        if (c == 0) {
+            free(header);
+            return HTTP_BAD_REQUEST;
+        }
         if (value_len == sizeof(header->value) - 1) {
             free(header);
             return HTTP_BAD_REQUEST;
