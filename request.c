@@ -1,3 +1,4 @@
+#include <strings.h>
 #include <string.h>
 
 #include "request.h"
@@ -282,7 +283,7 @@ const char *http_request_get_header(const HttpRequest *request, const char *name
     const HttpHeader *header = request->headers;
 
     while (header) {
-        if (!strcmp(header->name, name)) {
+        if (!strcasecmp(header->name, name)) {
             return header->value;
         }
         header = header->next;
