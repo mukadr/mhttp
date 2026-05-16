@@ -46,6 +46,10 @@ static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
             break;
         }
 
+        if (c == 0) {
+            return HTTP_BAD_REQUEST;
+        }
+
         if (len == sizeof(request->uri) - 1) {
             return HTTP_BAD_REQUEST;
         }
