@@ -172,6 +172,10 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
         slice_skip(line);
     }
 
+    if (name_len == 0) {
+        free(header);
+        return HTTP_BAD_REQUEST;
+    }
     c = slice_next(line);
     if (c != ' ') {
         free(header);
