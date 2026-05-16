@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -6,7 +5,9 @@
 
 HttpBuffer *http_buffer_new(size_t size)
 {
-    assert(size > 0);
+    if (size == 0) {
+        return NULL;
+    }
 
     HttpBuffer *buffer = calloc(1, sizeof(*buffer) + size);
 
