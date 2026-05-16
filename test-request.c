@@ -6,6 +6,16 @@
 
 #include "test-request.h"
 
+// Bypass null checking from http_buffer_concat
+static void buffer_write_raw(HttpBuffer *buffer, const void *data, size_t len)
+{
+    size_t remaining = buffer->end - buffer->pos;
+    memmove(buffer->buf, buffer->pos, remaining);
+    memcpy(buffer->buf + remaining, data, len);
+    buffer->pos = buffer->buf;
+    buffer->end = buffer->buf + remaining + len;
+}
+
 void test_malformed_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(512);
@@ -331,6 +341,194 @@ void test_head_request_with_missing_header_name(void)
     http_buffer_free(buffer);
 }
 
+static void test_header_count_below_limit_succeeds(void)
+{
+    HttpBuffer *buffer = http_buffer_new(1024);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
+    for (int i = 0; i < 100; i++) {
+        http_buffer_concat(buffer, "H: v\r\n");
+    }
+    http_buffer_concat(buffer, "\r\n");
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_header_count(request) == 100);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_header_count_above_limit_fails(void)
+{
+    HttpBuffer *buffer = http_buffer_new(1024);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
+    for (int i = 0; i < 50; i++) {
+        http_buffer_concat(buffer, "H: v\r\n");
+    }
+
+    // Make sure the count is tracked across multiple calls, not just within a single call
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
+    assert(http_request_header_count(request) == 50);
+
+    for (int i = 0; i < 51; i++) {
+        http_buffer_concat(buffer, "H: v\r\n");
+    }
+    http_buffer_concat(buffer, "\r\n");
+
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_null_byte_in_uri(void)
+{
+    HttpBuffer *buffer = http_buffer_new(64);
+    HttpRequest *request = http_request_new();
+
+    static const char req[] = "GET /pa\x00th HTTP/1.1\r\n\r\n";
+    buffer_write_raw(buffer, req, sizeof(req) - 1);
+
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_null_byte_in_header_name(void)
+{
+    HttpBuffer *buffer = http_buffer_new(64);
+    HttpRequest *request = http_request_new();
+
+    static const char req[] = "GET / HTTP/1.1\r\nNa\x00me: value\r\n\r\n";
+    buffer_write_raw(buffer, req, sizeof(req) - 1);
+
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_null_byte_in_header_value(void)
+{
+    HttpBuffer *buffer = http_buffer_new(64);
+    HttpRequest *request = http_request_new();
+
+    static const char req[] = "GET / HTTP/1.1\r\nName: va\x00lue\r\n\r\n";
+    buffer_write_raw(buffer, req, sizeof(req) - 1);
+
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_header_name_below_length_limit_succeeds(void)
+{
+    HttpBuffer *buffer = http_buffer_new(512);
+    HttpRequest *request = http_request_new();
+
+    char header[270];
+    memset(header, 'A', 255);
+    strcpy(header + 255, ": v\r\n\r\n");
+
+    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
+    http_buffer_concat(buffer, header);
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_header_name_above_length_limit_fails(void)
+{
+    HttpBuffer *buffer = http_buffer_new(512);
+    HttpRequest *request = http_request_new();
+
+    char header[270];
+    memset(header, 'A', 256);
+    strcpy(header + 256, ": v\r\n\r\n");
+
+    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
+    http_buffer_concat(buffer, header);
+
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_header_value_below_length_limit_succeeds(void)
+{
+    HttpBuffer *buffer = http_buffer_new(512);
+    HttpRequest *request = http_request_new();
+
+    char header[270];
+    strcpy(header, "N: ");
+    memset(header + 3, 'B', 255);
+    strcpy(header + 3 + 255, "\r\n\r\n");
+
+    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
+    http_buffer_concat(buffer, header);
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_header_value_above_length_limit_fails(void)
+{
+    HttpBuffer *buffer = http_buffer_new(512);
+    HttpRequest *request = http_request_new();
+
+    char header[270];
+    strcpy(header, "N: ");
+    memset(header + 3, 'B', 256);
+    strcpy(header + 3 + 256, "\r\n\r\n");
+
+    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
+    http_buffer_concat(buffer, header);
+
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_case_insensitive_header_name_lookup(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "GET / HTTP/1.1\r\n"
+        "Content-Type: text/html\r\n"
+        "X-Custom-Header: secret\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+
+    assert(!strcmp(http_request_get_header(request, "Content-Type"), "text/html"));
+    assert(!strcmp(http_request_get_header(request, "content-type"), "text/html"));
+    assert(!strcmp(http_request_get_header(request, "CONTENT-TYPE"), "text/html"));
+    assert(!strcmp(http_request_get_header(request, "cOnTeNt-TyPe"), "text/html"));
+
+    assert(!strcmp(http_request_get_header(request, "x-custom-header"), "secret"));
+    assert(!strcmp(http_request_get_header(request, "X-CUSTOM-HEADER"), "secret"));
+
+    assert(http_request_get_header(request, "Authorization") == NULL);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
 void test_request(void)
 {
     test_malformed_request();
@@ -344,4 +542,14 @@ void test_request(void)
     test_head_request_with_http_version_1_1();
     test_head_request_with_headers_needing_more_input();
     test_head_request_with_missing_header_name();
+    test_header_count_below_limit_succeeds();
+    test_header_count_above_limit_fails();
+    test_header_name_below_length_limit_succeeds();
+    test_header_name_above_length_limit_fails();
+    test_header_value_below_length_limit_succeeds();
+    test_header_value_above_length_limit_fails();
+    test_null_byte_in_uri();
+    test_null_byte_in_header_name();
+    test_null_byte_in_header_value();
+    test_case_insensitive_header_name_lookup();
 }
