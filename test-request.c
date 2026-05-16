@@ -500,6 +500,82 @@ static void test_header_value_above_length_limit_fails(void)
     http_buffer_free(buffer);
 }
 
+static void test_post_request(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /submit\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(request->method == HTTP_METHOD_POST);
+    assert(!strcmp(request->uri, "/submit"));
+    assert(request->version == 9);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_post_request_with_http_version_1_1(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /api/data HTTP/1.1\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(request->method == HTTP_METHOD_POST);
+    assert(!strcmp(request->uri, "/api/data"));
+    assert(request->version == 11);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_post_request_with_headers(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /api/data HTTP/1.1\r\n"
+        "Host: www.example.com\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: 42\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(request->method == HTTP_METHOD_POST);
+    assert(!strcmp(request->uri, "/api/data"));
+    assert(request->version == 11);
+    assert(http_request_header_count(request) == 3);
+
+    const char *host = http_request_get_header(request, "Host");
+    assert(host);
+    assert(!strcmp(host, "www.example.com"));
+
+    const char *ct = http_request_get_header(request, "Content-Type");
+    assert(ct);
+    assert(!strcmp(ct, "application/json"));
+
+    const char *cl = http_request_get_header(request, "Content-Length");
+    assert(cl);
+    assert(!strcmp(cl, "42"));
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
 static void test_case_insensitive_header_name_lookup(void)
 {
     HttpBuffer *buffer = http_buffer_new(256);
@@ -552,4 +628,7 @@ void test_request(void)
     test_null_byte_in_header_name();
     test_null_byte_in_header_value();
     test_case_insensitive_header_name_lookup();
+    test_post_request();
+    test_post_request_with_http_version_1_1();
+    test_post_request_with_headers();
 }

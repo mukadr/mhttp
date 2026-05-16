@@ -124,6 +124,18 @@ static HttpResult parse_method_head(HttpRequest *request, HttpSlice *line)
     return parse_http_version(request, line);
 }
 
+static HttpResult parse_method_post(HttpRequest *request, HttpSlice *line)
+{
+    request->method = HTTP_METHOD_POST;
+
+    HttpResult ret = parse_uri(request, line);
+    if (ret != HTTP_OK) {
+        return ret;
+    }
+
+    return parse_http_version(request, line);
+}
+
 static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
 {
     HttpSlice line = http_buffer_next_line(buffer);
@@ -137,6 +149,10 @@ static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
 
     if (slice_match(&line, "HEAD ")) {
         return parse_method_head(request, &line);
+    }
+
+    if (slice_match(&line, "POST ")) {
+        return parse_method_post(request, &line);
     }
 
     return HTTP_BAD_REQUEST;
