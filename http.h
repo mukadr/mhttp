@@ -8,4 +8,15 @@ typedef enum HttpResult {
     HTTP_INTERNAL_ERROR
 } HttpResult;
 
+typedef enum HttpMethod {
+    HTTP_METHOD_GET,
+    HTTP_METHOD_HEAD
+} HttpMethod;
+
+typedef struct HttpHeader {
+    char name[256];
+    char value[256];
+    struct HttpHeader *next;
+} HttpHeader;
+
 #endif // MHTTP_HTTP_H
