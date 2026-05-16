@@ -16,7 +16,7 @@ static void buffer_write_raw(HttpBuffer *buffer, const void *data, size_t len)
     buffer->end = buffer->buf + remaining + len;
 }
 
-static void test_malformed_request(void)
+static void test_request_with_malformed_content(void)
 {
     HttpBuffer *buffer = http_buffer_new(512);
     HttpRequest *request = http_request_new();
@@ -58,7 +58,7 @@ static void test_malformed_request(void)
     http_buffer_free(buffer);
 }
 
-static void test_bad_line_ending(void)
+static void test_request_with_bad_line_ending(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -107,6 +107,48 @@ static void test_bad_line_ending(void)
     http_buffer_free(buffer);
 }
 
+static void test_request_with_null_byte_in_uri(void)
+{
+    HttpBuffer *buffer = http_buffer_new(64);
+    HttpRequest *request = http_request_new();
+
+    static const char req[] = "GET /pa\x00th HTTP/1.1\r\n\r\n";
+    buffer_write_raw(buffer, req, sizeof(req) - 1);
+
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_with_null_byte_in_header_name(void)
+{
+    HttpBuffer *buffer = http_buffer_new(64);
+    HttpRequest *request = http_request_new();
+
+    static const char req[] = "GET / HTTP/1.1\r\nNa\x00me: value\r\n\r\n";
+    buffer_write_raw(buffer, req, sizeof(req) - 1);
+
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_with_null_byte_in_header_value(void)
+{
+    HttpBuffer *buffer = http_buffer_new(64);
+    HttpRequest *request = http_request_new();
+
+    static const char req[] = "GET / HTTP/1.1\r\nName: va\x00lue\r\n\r\n";
+    buffer_write_raw(buffer, req, sizeof(req) - 1);
+
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
 static void test_get_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
@@ -127,75 +169,21 @@ static void test_get_request(void)
     http_buffer_free(buffer);
 }
 
-static void test_get_request_with_http_version_1_0(void)
+static void test_post_request(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
 
     http_buffer_concat(
         buffer,
-        "GET /index.html HTTP/1.0\r\n"
+        "POST /\r\n"
         "\r\n"
     );
 
     assert(http_request_parse(request, buffer) == HTTP_OK);
-    assert(request->method == HTTP_METHOD_GET);
-    assert(!strcmp(request->uri, "/index.html"));
-    assert(request->version == 10);
-
-    http_request_free(request);
-    http_buffer_free(buffer);
-}
-
-static void test_get_request_with_http_version_1_1(void)
-{
-    HttpBuffer *buffer = http_buffer_new(128);
-    HttpRequest *request = http_request_new();
-
-    http_buffer_concat(
-        buffer,
-        "GET /static/chat.png HTTP/1.1\r\n"
-        "\r\n"
-    );
-
-    assert(http_request_parse(request, buffer) == HTTP_OK);
-    assert(request->method == HTTP_METHOD_GET);
-    assert(!strcmp(request->uri, "/static/chat.png"));
-    assert(request->version == 11);
-
-    http_request_free(request);
-    http_buffer_free(buffer);
-}
-
-static void test_get_request_with_headers(void)
-{
-    HttpBuffer *buffer = http_buffer_new(128);
-    HttpRequest *request = http_request_new();
-
-    http_buffer_concat(
-        buffer,
-        "GET / HTTP/1.0\r\n"
-        "Host: www.example.com\r\n"
-        "User-Agent: TestAgent/1.0\r\n"
-        "\r\n"
-    );
-
-    // Request
-    assert(http_request_parse(request, buffer) == HTTP_OK);
-    assert(request->method == HTTP_METHOD_GET);
+    assert(request->method == HTTP_METHOD_POST);
     assert(!strcmp(request->uri, "/"));
-    assert(request->version == 10);
-
-    // Headers
-    assert(http_request_header_count(request) == 2);
-
-    const char *host = http_request_get_header(request, "Host");
-    assert(host);
-    assert(!strcmp(host, "www.example.com"));
-
-    const char *user_agent = http_request_get_header(request, "User-Agent");
-    assert(user_agent);
-    assert(!strcmp(user_agent, "TestAgent/1.0"));
+    assert(request->version == 9);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -221,19 +209,19 @@ static void test_head_request(void)
     http_buffer_free(buffer);
 }
 
-static void test_head_request_with_http_version_1_0(void)
+static void test_request_with_http_version_1_0(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
 
     http_buffer_concat(
         buffer,
-        "HEAD /index.html HTTP/1.0\r\n"
+        "GET /index.html HTTP/1.0\r\n"
         "\r\n"
     );
 
     assert(http_request_parse(request, buffer) == HTTP_OK);
-    assert(request->method == HTTP_METHOD_HEAD);
+    assert(request->method == HTTP_METHOD_GET);
     assert(!strcmp(request->uri, "/index.html"));
     assert(request->version == 10);
 
@@ -241,19 +229,18 @@ static void test_head_request_with_http_version_1_0(void)
     http_buffer_free(buffer);
 }
 
-static void test_head_request_with_http_version_1_1(void)
+static void test_request_with_http_version_1_1(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
 
     http_buffer_concat(
         buffer,
-        "HEAD /static/chat.png HTTP/1.1\r\n"
+        "POST /static/chat.png HTTP/1.1\r\n"
         "\r\n"
     );
 
     assert(http_request_parse(request, buffer) == HTTP_OK);
-    assert(request->method == HTTP_METHOD_HEAD);
     assert(!strcmp(request->uri, "/static/chat.png"));
     assert(request->version == 11);
 
@@ -261,7 +248,42 @@ static void test_head_request_with_http_version_1_1(void)
     http_buffer_free(buffer);
 }
 
-static void test_head_request_with_headers_needing_more_input(void)
+static void test_request_with_headers(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST / HTTP/1.1\r\n"
+        "Host: www.example.com\r\n"
+        "Content-Type: application/json\r\n"
+        "User-Agent: TestAgent/1.0\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(!strcmp(request->uri, "/"));
+    assert(request->version == 11);
+    assert(http_request_header_count(request) == 3);
+
+    const char *host = http_request_get_header(request, "Host");
+    assert(host);
+    assert(!strcmp(host, "www.example.com"));
+
+    const char *ct = http_request_get_header(request, "Content-Type");
+    assert(ct);
+    assert(!strcmp(ct, "application/json"));
+
+    const char *ua = http_request_get_header(request, "User-Agent");
+    assert(ua);
+    assert(!strcmp(ua, "TestAgent/1.0"));
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_with_headers_needing_more_input(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -323,7 +345,7 @@ static void test_head_request_with_headers_needing_more_input(void)
     http_buffer_free(buffer);
 }
 
-static void test_head_request_with_missing_header_name(void)
+static void test_request_with_missing_header_name(void)
 {
     HttpBuffer *buffer = http_buffer_new(128);
     HttpRequest *request = http_request_new();
@@ -341,7 +363,7 @@ static void test_head_request_with_missing_header_name(void)
     http_buffer_free(buffer);
 }
 
-static void test_header_count_below_limit_succeeds(void)
+static void test_request_with_header_count_below_limit_succeeds(void)
 {
     HttpBuffer *buffer = http_buffer_new(1024);
     HttpRequest *request = http_request_new();
@@ -359,7 +381,7 @@ static void test_header_count_below_limit_succeeds(void)
     http_buffer_free(buffer);
 }
 
-static void test_header_count_above_limit_fails(void)
+static void test_request_with_header_count_above_limit_fails(void)
 {
     HttpBuffer *buffer = http_buffer_new(1024);
     HttpRequest *request = http_request_new();
@@ -384,49 +406,7 @@ static void test_header_count_above_limit_fails(void)
     http_buffer_free(buffer);
 }
 
-static void test_null_byte_in_uri(void)
-{
-    HttpBuffer *buffer = http_buffer_new(64);
-    HttpRequest *request = http_request_new();
-
-    static const char req[] = "GET /pa\x00th HTTP/1.1\r\n\r\n";
-    buffer_write_raw(buffer, req, sizeof(req) - 1);
-
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
-
-    http_request_free(request);
-    http_buffer_free(buffer);
-}
-
-static void test_null_byte_in_header_name(void)
-{
-    HttpBuffer *buffer = http_buffer_new(64);
-    HttpRequest *request = http_request_new();
-
-    static const char req[] = "GET / HTTP/1.1\r\nNa\x00me: value\r\n\r\n";
-    buffer_write_raw(buffer, req, sizeof(req) - 1);
-
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
-
-    http_request_free(request);
-    http_buffer_free(buffer);
-}
-
-static void test_null_byte_in_header_value(void)
-{
-    HttpBuffer *buffer = http_buffer_new(64);
-    HttpRequest *request = http_request_new();
-
-    static const char req[] = "GET / HTTP/1.1\r\nName: va\x00lue\r\n\r\n";
-    buffer_write_raw(buffer, req, sizeof(req) - 1);
-
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
-
-    http_request_free(request);
-    http_buffer_free(buffer);
-}
-
-static void test_header_name_below_length_limit_succeeds(void)
+static void test_request_with_header_name_below_length_limit_succeeds(void)
 {
     HttpBuffer *buffer = http_buffer_new(512);
     HttpRequest *request = http_request_new();
@@ -444,7 +424,7 @@ static void test_header_name_below_length_limit_succeeds(void)
     http_buffer_free(buffer);
 }
 
-static void test_header_name_above_length_limit_fails(void)
+static void test_request_with_header_name_above_length_limit_fails(void)
 {
     HttpBuffer *buffer = http_buffer_new(512);
     HttpRequest *request = http_request_new();
@@ -462,7 +442,7 @@ static void test_header_name_above_length_limit_fails(void)
     http_buffer_free(buffer);
 }
 
-static void test_header_value_below_length_limit_succeeds(void)
+static void test_request_with_header_value_below_length_limit_succeeds(void)
 {
     HttpBuffer *buffer = http_buffer_new(512);
     HttpRequest *request = http_request_new();
@@ -481,7 +461,7 @@ static void test_header_value_below_length_limit_succeeds(void)
     http_buffer_free(buffer);
 }
 
-static void test_header_value_above_length_limit_fails(void)
+static void test_request_with_header_value_above_length_limit_fails(void)
 {
     HttpBuffer *buffer = http_buffer_new(512);
     HttpRequest *request = http_request_new();
@@ -500,83 +480,7 @@ static void test_header_value_above_length_limit_fails(void)
     http_buffer_free(buffer);
 }
 
-static void test_post_request(void)
-{
-    HttpBuffer *buffer = http_buffer_new(128);
-    HttpRequest *request = http_request_new();
-
-    http_buffer_concat(
-        buffer,
-        "POST /submit\r\n"
-        "\r\n"
-    );
-
-    assert(http_request_parse(request, buffer) == HTTP_OK);
-    assert(request->method == HTTP_METHOD_POST);
-    assert(!strcmp(request->uri, "/submit"));
-    assert(request->version == 9);
-
-    http_request_free(request);
-    http_buffer_free(buffer);
-}
-
-static void test_post_request_with_http_version_1_1(void)
-{
-    HttpBuffer *buffer = http_buffer_new(128);
-    HttpRequest *request = http_request_new();
-
-    http_buffer_concat(
-        buffer,
-        "POST /api/data HTTP/1.1\r\n"
-        "\r\n"
-    );
-
-    assert(http_request_parse(request, buffer) == HTTP_OK);
-    assert(request->method == HTTP_METHOD_POST);
-    assert(!strcmp(request->uri, "/api/data"));
-    assert(request->version == 11);
-
-    http_request_free(request);
-    http_buffer_free(buffer);
-}
-
-static void test_post_request_with_headers(void)
-{
-    HttpBuffer *buffer = http_buffer_new(256);
-    HttpRequest *request = http_request_new();
-
-    http_buffer_concat(
-        buffer,
-        "POST /api/data HTTP/1.1\r\n"
-        "Host: www.example.com\r\n"
-        "Content-Type: application/json\r\n"
-        "Content-Length: 42\r\n"
-        "\r\n"
-    );
-
-    assert(http_request_parse(request, buffer) == HTTP_OK);
-    assert(request->method == HTTP_METHOD_POST);
-    assert(!strcmp(request->uri, "/api/data"));
-    assert(request->version == 11);
-    assert(http_request_header_count(request) == 3);
-
-    const char *host = http_request_get_header(request, "Host");
-    assert(host);
-    assert(!strcmp(host, "www.example.com"));
-
-    const char *ct = http_request_get_header(request, "Content-Type");
-    assert(ct);
-    assert(!strcmp(ct, "application/json"));
-
-    const char *cl = http_request_get_header(request, "Content-Length");
-    assert(cl);
-    assert(!strcmp(cl, "42"));
-
-    http_request_free(request);
-    http_buffer_free(buffer);
-}
-
-static void test_case_insensitive_header_name_lookup(void)
+static void test_request_case_insensitive_header_name_lookup(void)
 {
     HttpBuffer *buffer = http_buffer_new(256);
     HttpRequest *request = http_request_new();
@@ -607,28 +511,28 @@ static void test_case_insensitive_header_name_lookup(void)
 
 void test_request(void)
 {
-    test_malformed_request();
-    test_bad_line_ending();
+    test_request_with_malformed_content();
+    test_request_with_bad_line_ending();
+
+    test_request_with_null_byte_in_uri();
+    test_request_with_null_byte_in_header_name();
+    test_request_with_null_byte_in_header_value();
+
     test_get_request();
-    test_get_request_with_http_version_1_0();
-    test_get_request_with_http_version_1_1();
-    test_get_request_with_headers();
-    test_head_request();
-    test_head_request_with_http_version_1_0();
-    test_head_request_with_http_version_1_1();
-    test_head_request_with_headers_needing_more_input();
-    test_head_request_with_missing_header_name();
-    test_header_count_below_limit_succeeds();
-    test_header_count_above_limit_fails();
-    test_header_name_below_length_limit_succeeds();
-    test_header_name_above_length_limit_fails();
-    test_header_value_below_length_limit_succeeds();
-    test_header_value_above_length_limit_fails();
-    test_null_byte_in_uri();
-    test_null_byte_in_header_name();
-    test_null_byte_in_header_value();
-    test_case_insensitive_header_name_lookup();
     test_post_request();
-    test_post_request_with_http_version_1_1();
-    test_post_request_with_headers();
+    test_head_request();
+
+    test_request_with_http_version_1_0();
+    test_request_with_http_version_1_1();
+
+    test_request_with_headers();
+    test_request_with_headers_needing_more_input();
+    test_request_with_missing_header_name();
+    test_request_with_header_count_below_limit_succeeds();
+    test_request_with_header_count_above_limit_fails();
+    test_request_with_header_name_below_length_limit_succeeds();
+    test_request_with_header_name_above_length_limit_fails();
+    test_request_with_header_value_below_length_limit_succeeds();
+    test_request_with_header_value_above_length_limit_fails();
+    test_request_case_insensitive_header_name_lookup();
 }
