@@ -215,7 +215,7 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
 static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
 {
     HttpHeader **header_ptr = &request->headers;
-    int count = 0;
+    int count = http_request_header_count(request);
 
     while (true) {
         HttpResult ret;
