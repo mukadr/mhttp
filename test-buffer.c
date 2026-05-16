@@ -6,6 +6,13 @@
 #include "buffer.h"
 #include "slice.h"
 
+static void test_zero_size_buffer(void)
+{
+    HttpBuffer *buffer = http_buffer_new(0);
+
+    assert(buffer == NULL);
+}
+
 static void test_buffer1(void)
 {
     HttpBuffer *buffer = http_buffer_new(1);
@@ -183,6 +190,7 @@ static void test_buffer4(void)
 
 void test_buffer(void)
 {
+    test_zero_size_buffer();
     test_buffer1();
     test_buffer2();
     test_buffer3();
