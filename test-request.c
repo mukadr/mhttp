@@ -313,6 +313,24 @@ void test_head_request_with_headers_needing_more_input(void)
     http_buffer_free(buffer);
 }
 
+void test_head_request_with_missing_header_name(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(buffer, "HEAD /hello\r\n");
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
+
+    http_buffer_concat(buffer, ": world\r");
+    assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
+
+    http_buffer_concat(buffer, "\n");
+    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
 void test_request(void)
 {
     test_malformed_request();
@@ -325,4 +343,5 @@ void test_request(void)
     test_head_request_with_http_version_1_0();
     test_head_request_with_http_version_1_1();
     test_head_request_with_headers_needing_more_input();
+    test_head_request_with_missing_header_name();
 }
