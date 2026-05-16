@@ -160,6 +160,10 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
             free(header);
             return HTTP_BAD_REQUEST;
         }
+        if (c == 0) {
+            free(header);
+            return HTTP_BAD_REQUEST;
+        }
         if (name_len == sizeof(header->name) - 1) {
             free(header);
             return HTTP_BAD_REQUEST;
