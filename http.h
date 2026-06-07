@@ -18,6 +18,13 @@ typedef enum HttpMethod {
     HTTP_METHOD_PATCH
 } HttpMethod;
 
+typedef enum HttpStatusCode {
+    HTTP_STATUS_OK                    = 200,
+    HTTP_STATUS_BAD_REQUEST           = 400,
+    HTTP_STATUS_NOT_FOUND             = 404,
+    HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
+} HttpStatusCode;
+
 typedef struct HttpHeader {
     char name[256];
     char value[256];
