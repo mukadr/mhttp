@@ -130,11 +130,11 @@ static void test_response_write_minimal(void)
 {
     HttpResponse *response = http_response_new();
     HttpBuffer *buffer = http_buffer_new(128);
+    HttpSlice line;
 
     http_response_write(response, buffer);
 
-    HttpSlice line = http_buffer_next_line(buffer);
-
+    line = http_buffer_next_line(buffer);
     assert(slice_eq(&line, "HTTP/1.1 200 OK\r\n"));
 
     line = http_buffer_next_line(buffer);
@@ -148,14 +148,14 @@ static void test_response_write_with_headers(void)
 {
     HttpResponse *response = http_response_new();
     HttpBuffer *buffer = http_buffer_new(256);
+    HttpSlice line;
 
     http_response_set_status(response, 404);
     assert(http_response_set_header(response, "Content-Type", "text/plain") == HTTP_OK);
 
     http_response_write(response, buffer);
 
-    HttpSlice line = http_buffer_next_line(buffer);
-
+    line = http_buffer_next_line(buffer);
     assert(slice_eq(&line, "HTTP/1.1 404 Not Found\r\n"));
 
     line = http_buffer_next_line(buffer);
@@ -175,14 +175,14 @@ static void test_response_write_with_body(void)
 {
     HttpResponse *response = http_response_new();
     HttpBuffer *buffer = http_buffer_new(256);
+    HttpSlice line;
 
     assert(http_response_set_header(response, "Content-Type", "application/json") == HTTP_OK);
     http_response_set_body(response, "{\"ok\":true}");
 
     http_response_write(response, buffer);
 
-    HttpSlice line = http_buffer_next_line(buffer);
-
+    line = http_buffer_next_line(buffer);
     assert(slice_eq(&line, "HTTP/1.1 200 OK\r\n"));
 
     line = http_buffer_next_line(buffer);
