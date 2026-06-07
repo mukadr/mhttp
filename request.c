@@ -5,6 +5,13 @@
 #include "request.h"
 #include "buffer.h"
 
+enum {
+    CHUNK_NEED_HEADER = -1,
+    CHUNK_BODY_DONE   = -2,
+    CHUNK_NEED_CRLF   = -3,
+    CHUNK_TRAILER     = -4
+};
+
 HttpRequest *http_request_new(void)
 {
     HttpRequest *request = calloc(1, sizeof(*request));
@@ -346,6 +353,12 @@ HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer)
         if (cl) {
             request->content_length = atoi(cl);
         }
+
+        const char *te = http_request_get_header(request, "Transfer-Encoding");
+        if (te && !strcasecmp(te, "chunked")) {
+            request->body_is_chunked = true;
+            request->chunk_size = CHUNK_NEED_HEADER;
+        }
     }
 
     return HTTP_OK;
@@ -356,8 +369,126 @@ int http_request_content_length(const HttpRequest *request)
     return request->content_length;
 }
 
+static int parse_hex_digit(int c)
+{
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    }
+    if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    }
+    if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    }
+    return -1;
+}
+
+static int parse_chunk_size(HttpSlice *line)
+{
+    int size = 0;
+    int d;
+
+    while (true) {
+        int c = slice_peek(line);
+        d = parse_hex_digit(c);
+        if (d < 0) {
+            break;
+        }
+        slice_skip(line);
+        size = size * 16 + d;
+    }
+
+    return size;
+}
+
+static size_t http_request_read_body_chunked(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len)
+{
+    if (request->body_done) {
+        return 0;
+    }
+
+    size_t total = 0;
+    char *out = dst;
+
+    while (total < len) {
+        if (request->chunk_size == CHUNK_BODY_DONE) {
+            request->body_done = true;
+            break;
+        }
+
+        if (request->chunk_size == CHUNK_NEED_HEADER) {
+            HttpSlice line = http_buffer_next_line(buffer);
+            if (slice_empty(&line)) {
+                break;
+            }
+            int size = parse_chunk_size(&line);
+            if (size == 0) {
+                request->chunk_size = CHUNK_TRAILER;
+            } else {
+                request->chunk_size = size;
+            }
+            continue;
+        }
+
+        if (request->chunk_size == CHUNK_TRAILER) {
+            HttpSlice line = http_buffer_next_line(buffer);
+            if (slice_empty(&line)) {
+                break;
+            }
+            if (slice_eol(&line)) {
+                request->chunk_size = CHUNK_BODY_DONE;
+                continue;
+            }
+            continue;
+        }
+
+        if (request->chunk_size == CHUNK_NEED_CRLF) {
+            HttpSlice line = http_buffer_next_line(buffer);
+            if (slice_empty(&line)) {
+                break;
+            }
+            request->chunk_size = CHUNK_NEED_HEADER;
+            continue;
+        }
+
+        if (request->chunk_size > 0) {
+            size_t available = buffer->end - buffer->pos;
+            if (available == 0) {
+                break;
+            }
+            size_t to_copy = len - total;
+            if (to_copy > available) {
+                to_copy = available;
+            }
+            if (to_copy > (size_t)request->chunk_size) {
+                to_copy = request->chunk_size;
+            }
+
+            memcpy(out + total, buffer->pos, to_copy);
+            buffer->pos += to_copy;
+            request->body_received += to_copy;
+            request->chunk_size -= to_copy;
+            total += to_copy;
+
+            if (request->chunk_size == 0) {
+                request->chunk_size = CHUNK_NEED_CRLF;
+            }
+            if (total == len) {
+                break;
+            }
+            continue;
+        }
+    }
+
+    return total;
+}
+
 size_t http_request_read_body(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len)
 {
+    if (request->body_is_chunked) {
+        return http_request_read_body_chunked(request, buffer, dst, len);
+    }
+
     if (request->content_length == 0) {
         return 0;
     }
@@ -382,6 +513,11 @@ size_t http_request_read_body(HttpRequest *request, HttpBuffer *buffer, void *ds
     request->body_received += to_copy;
 
     return to_copy;
+}
+
+bool http_request_is_chunked(const HttpRequest *request)
+{
+    return request->body_is_chunked;
 }
 
 int http_request_header_count(const HttpRequest *request)

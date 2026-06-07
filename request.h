@@ -20,6 +20,9 @@ typedef struct HttpRequest {
     HttpHeader *headers;
     int content_length;
     int body_received;
+    bool body_is_chunked;
+    int chunk_size;
+    bool body_done;
 } HttpRequest;
 
 HttpRequest *http_request_new(void);
@@ -35,5 +38,7 @@ const char *http_request_get_header(const HttpRequest *request, const char *name
 int http_request_content_length(const HttpRequest *request);
 
 size_t http_request_read_body(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len);
+
+bool http_request_is_chunked(const HttpRequest *request);
 
 #endif // MHTTP_REQUEST_H

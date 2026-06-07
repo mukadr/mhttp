@@ -740,6 +740,316 @@ static void test_request_body_buffer_smaller_than_content(void)
     http_buffer_free(buffer);
 }
 
+static void test_request_body_chunked_single(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /data HTTP/1.1\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "7\r\n"
+        "abcdefg\r\n"
+        "0\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_is_chunked(request));
+
+    char body[16] = { 0 };
+    size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 7);
+    assert(!memcmp(body, "abcdefg", 7));
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_body_chunked_multiple(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /data HTTP/1.1\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "5\r\n"
+        "hello\r\n"
+        "6\r\n"
+        " world\r\n"
+        "0\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_is_chunked(request));
+
+    char body[32] = { 0 };
+    size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 11);
+    assert(!memcmp(body, "hello world", 11));
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_body_chunked_incremental(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /data HTTP/1.1\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "A\r\n"
+        "hello"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_is_chunked(request));
+
+    char body[32] = { 0 };
+    int total = 0;
+    size_t ret;
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 5);
+    total += ret;
+
+    http_buffer_concat(buffer, " wor");
+
+    ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
+    assert(ret == 4);
+    total += ret;
+
+    http_buffer_concat(buffer, "l");
+
+    ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
+    assert(ret == 1);
+    total += ret;
+
+    http_buffer_concat(buffer, "d\r\n0\r\n\r\n");
+
+    ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
+    assert(ret == 0);
+    assert(total == 10);
+    assert(!memcmp(body, "hello worl", 10));
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_body_chunked_no_header(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /data HTTP/1.1\r\n"
+        "Content-Length: 5\r\n"
+        "\r\n"
+        "hello"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(!http_request_is_chunked(request));
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_body_chunked_empty(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /data HTTP/1.1\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "0\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_is_chunked(request));
+
+    char body[16] = { 0 };
+    size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_body_chunked_no_header_data_yet(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /data HTTP/1.1\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_is_chunked(request));
+
+    char body[16] = { 0 };
+    size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_buffer_concat(buffer, "5\r\nhello\r\n0\r\n\r\n");
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 5);
+    assert(!memcmp(body, "hello", 5));
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_body_chunked_trailer_split(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /data HTTP/1.1\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "5\r\n"
+        "hello\r\n"
+        "0\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_is_chunked(request));
+
+    char body[16] = { 0 };
+    size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 5);
+    assert(!memcmp(body, "hello", 5));
+
+    http_buffer_concat(buffer, "\r\n");
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_body_chunked_trailer_header(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /data HTTP/1.1\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "4\r\n"
+        "body\r\n"
+        "0\r\n"
+        "X-Info: ok\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_is_chunked(request));
+
+    char body[16] = { 0 };
+    size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 4);
+    assert(!memcmp(body, "body", 4));
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_body_chunked_user_buffer_small(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /data HTTP/1.1\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "A\r\n"
+        "0123456789\r\n"
+        "0\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_is_chunked(request));
+
+    char body[16] = { 0 };
+    int total = 0;
+    size_t ret;
+
+    ret = http_request_read_body(request, buffer, body, 3);
+    assert(ret == 3);
+    assert(!memcmp(body, "012", 3));
+    total += ret;
+
+    ret = http_request_read_body(request, buffer, body + total, 3);
+    assert(ret == 3);
+    assert(!memcmp(body + total, "345", 3));
+    total += ret;
+
+    ret = http_request_read_body(request, buffer, body + total, 3);
+    assert(ret == 3);
+    assert(!memcmp(body + total, "678", 3));
+    total += ret;
+
+    ret = http_request_read_body(request, buffer, body + total, 1);
+    assert(ret == 1);
+    assert(!memcmp(body + total, "9", 1));
+    total += ret;
+
+    ret = http_request_read_body(request, buffer, body + total, 10);
+    assert(ret == 0);
+    assert(total == 10);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
 static void test_request_case_insensitive_header_name_lookup(void)
 {
     HttpBuffer *buffer = http_buffer_new(256);
@@ -806,4 +1116,15 @@ void test_request(void)
     test_request_content_length_zero();
     test_request_body_clamped_to_content_length();
     test_request_body_buffer_smaller_than_content();
+
+    test_request_body_chunked_single();
+    test_request_body_chunked_multiple();
+    test_request_body_chunked_incremental();
+    test_request_body_chunked_no_header();
+    test_request_body_chunked_empty();
+
+    test_request_body_chunked_no_header_data_yet();
+    test_request_body_chunked_trailer_split();
+    test_request_body_chunked_trailer_header();
+    test_request_body_chunked_user_buffer_small();
 }
