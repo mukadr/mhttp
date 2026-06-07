@@ -246,29 +246,24 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
             break;
         }
         if (c == '\r' || c == '\n' || c == -1) {
-            free(header);
-            return HTTP_BAD_REQUEST;
+            goto err_bad_request;
         }
         if (c == 0) {
-            free(header);
-            return HTTP_BAD_REQUEST;
+            goto err_bad_request;
         }
         if (name_len == sizeof(header->name) - 1) {
-            free(header);
-            return HTTP_BAD_REQUEST;
+            goto err_bad_request;
         }
         header->name[name_len++] = (char)c;
         slice_skip(line);
     }
 
     if (name_len == 0) {
-        free(header);
-        return HTTP_BAD_REQUEST;
+        goto err_bad_request;
     }
     c = slice_next(line);
     if (c != ' ') {
-        free(header);
-        return HTTP_BAD_REQUEST;
+        goto err_bad_request;
     }
 
     size_t value_len = 0;
@@ -278,24 +273,25 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
             break;
         }
         if (c == 0) {
-            free(header);
-            return HTTP_BAD_REQUEST;
+            goto err_bad_request;
         }
         if (value_len == sizeof(header->value) - 1) {
-            free(header);
-            return HTTP_BAD_REQUEST;
+            goto err_bad_request;
         }
         header->value[value_len++] = (char)c;
     }
 
     if (!slice_eol(line)) {
-        free(header);
-        return HTTP_BAD_REQUEST;
+        goto err_bad_request;
     }
 
     *out_header = header;
 
     return HTTP_OK;
+
+err_bad_request:
+    free(header);
+    return HTTP_BAD_REQUEST;
 }
 
 #define HTTP_MAX_HEADERS 100
