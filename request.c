@@ -432,7 +432,6 @@ static size_t http_request_read_chunked_body(HttpRequest *request, HttpBuffer *b
             }
             if (slice_eol(&line)) {
                 request->chunk_size = CHUNK_BODY_DONE;
-                continue;
             }
             continue;
         }
