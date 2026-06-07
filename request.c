@@ -401,7 +401,7 @@ static int parse_chunk_size(HttpSlice *line)
     return size;
 }
 
-static size_t http_request_read_body_chunked(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len)
+static size_t http_request_read_chunked_body(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len)
 {
     if (request->body_done) {
         return 0;
@@ -483,12 +483,8 @@ static size_t http_request_read_body_chunked(HttpRequest *request, HttpBuffer *b
     return total;
 }
 
-size_t http_request_read_body(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len)
+static size_t http_request_read_body_with_content_length(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len)
 {
-    if (request->body_is_chunked) {
-        return http_request_read_body_chunked(request, buffer, dst, len);
-    }
-
     if (request->content_length == 0) {
         return 0;
     }
@@ -513,6 +509,15 @@ size_t http_request_read_body(HttpRequest *request, HttpBuffer *buffer, void *ds
     request->body_received += to_copy;
 
     return to_copy;
+}
+
+size_t http_request_read_body(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len)
+{
+    if (request->body_is_chunked) {
+        return http_request_read_chunked_body(request, buffer, dst, len);
+    }
+
+    return http_request_read_body_with_content_length(request, buffer, dst, len);
 }
 
 bool http_request_is_chunked(const HttpRequest *request)
