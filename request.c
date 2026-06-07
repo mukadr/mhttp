@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <strings.h>
 #include <string.h>
 
@@ -340,9 +341,47 @@ HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer)
             return ret;
         }
         request->state = HTTP_PARSE_DONE;
+
+        const char *cl = http_request_get_header(request, "Content-Length");
+        if (cl) {
+            request->content_length = atoi(cl);
+        }
     }
 
     return HTTP_OK;
+}
+
+int http_request_content_length(const HttpRequest *request)
+{
+    return request->content_length;
+}
+
+size_t http_request_read_body(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len)
+{
+    if (request->content_length == 0) {
+        return 0;
+    }
+
+    int remaining = request->content_length - request->body_received;
+    if (remaining <= 0) {
+        return 0;
+    }
+
+    size_t available = buffer->end - buffer->pos;
+    if (available == 0) {
+        return 0;
+    }
+
+    size_t to_copy = len < available ? len : available;
+    if (to_copy > (size_t)remaining) {
+        to_copy = remaining;
+    }
+
+    memcpy(dst, buffer->pos, to_copy);
+    buffer->pos += to_copy;
+    request->body_received += to_copy;
+
+    return to_copy;
 }
 
 int http_request_header_count(const HttpRequest *request)

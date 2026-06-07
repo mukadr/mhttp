@@ -560,6 +560,186 @@ static void test_patch_request(void)
     http_buffer_free(buffer);
 }
 
+static void test_request_body_full_in_buffer(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /submit HTTP/1.1\r\n"
+        "Content-Length: 7\r\n"
+        "\r\n"
+        "abcdefg"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_content_length(request) == 7);
+
+    char body[16] = { 0 };
+    size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 7);
+    assert(!memcmp(body, "abcdefg", 7));
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_body_incremental(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /upload HTTP/1.1\r\n"
+        "Content-Length: 10\r\n"
+        "\r\n"
+        "hello"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_content_length(request) == 10);
+
+    char body[16] = { 0 };
+    size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 5);
+    assert(!memcmp(body, "hello", 5));
+
+    http_buffer_concat(buffer, " worl");
+
+    ret = http_request_read_body(request, buffer, body + 5, sizeof(body) - 5);
+    assert(ret == 5);
+    assert(!memcmp(body + 5, " worl", 5));
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_no_content_length(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "GET / HTTP/1.1\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_content_length(request) == 0);
+
+    char body[16] = { 0 };
+    size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_content_length_zero(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /empty HTTP/1.1\r\n"
+        "Content-Length: 0\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_content_length(request) == 0);
+
+    char body[16] = { 0 };
+    size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_body_clamped_to_content_length(void)
+{
+    HttpBuffer *buffer = http_buffer_new(256);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /data HTTP/1.1\r\n"
+        "Content-Length: 3\r\n"
+        "\r\n"
+        "abcdef"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_content_length(request) == 3);
+
+    char body[16] = { 0 };
+    size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 3);
+    assert(!memcmp(body, "abc", 3));
+
+    ret = http_request_read_body(request, buffer, body, sizeof(body));
+    assert(ret == 0);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_request_body_buffer_smaller_than_content(void)
+{
+    HttpBuffer *buffer = http_buffer_new(64);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "POST /data HTTP/1.1\r\n"
+        "Content-Length: 50\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(http_request_content_length(request) == 50);
+
+    char body[60] = { 0 };
+    int total = 0;
+    size_t ret;
+
+    http_buffer_concat(buffer, "AAAAAAAAAABBBBBBBBBB");
+    ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
+    assert(ret == 20);
+    total += ret;
+    assert(!memcmp(body, "AAAAAAAAAABBBBBBBBBB", 20));
+
+    http_buffer_concat(buffer, "CCCCCCCCCCDDDDDDDDDD");
+    ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
+    assert(ret == 20);
+    total += ret;
+    assert(!memcmp(body + 20, "CCCCCCCCCCDDDDDDDDDD", 20));
+
+    http_buffer_concat(buffer, "EEEEEEEEEE");
+    ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
+    assert(ret == 10);
+    total += ret;
+    assert(!memcmp(body + 40, "EEEEEEEEEE", 10));
+
+    ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
+    assert(ret == 0);
+    assert(total == 50);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
 static void test_request_case_insensitive_header_name_lookup(void)
 {
     HttpBuffer *buffer = http_buffer_new(256);
@@ -619,4 +799,11 @@ void test_request(void)
     test_request_with_header_value_below_length_limit_succeeds();
     test_request_with_header_value_above_length_limit_fails();
     test_request_case_insensitive_header_name_lookup();
+
+    test_request_body_full_in_buffer();
+    test_request_body_incremental();
+    test_request_no_content_length();
+    test_request_content_length_zero();
+    test_request_body_clamped_to_content_length();
+    test_request_body_buffer_smaller_than_content();
 }
