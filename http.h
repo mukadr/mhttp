@@ -11,7 +11,11 @@ typedef enum HttpResult {
 typedef enum HttpMethod {
     HTTP_METHOD_GET,
     HTTP_METHOD_HEAD,
-    HTTP_METHOD_POST
+    HTTP_METHOD_POST,
+    HTTP_METHOD_PUT,
+    HTTP_METHOD_DELETE,
+    HTTP_METHOD_OPTIONS,
+    HTTP_METHOD_PATCH
 } HttpMethod;
 
 typedef struct HttpHeader {

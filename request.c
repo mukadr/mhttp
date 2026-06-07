@@ -136,6 +136,54 @@ static HttpResult parse_method_post(HttpRequest *request, HttpSlice *line)
     return parse_http_version(request, line);
 }
 
+static HttpResult parse_method_put(HttpRequest *request, HttpSlice *line)
+{
+    request->method = HTTP_METHOD_PUT;
+
+    HttpResult ret = parse_uri(request, line);
+    if (ret != HTTP_OK) {
+        return ret;
+    }
+
+    return parse_http_version(request, line);
+}
+
+static HttpResult parse_method_delete(HttpRequest *request, HttpSlice *line)
+{
+    request->method = HTTP_METHOD_DELETE;
+
+    HttpResult ret = parse_uri(request, line);
+    if (ret != HTTP_OK) {
+        return ret;
+    }
+
+    return parse_http_version(request, line);
+}
+
+static HttpResult parse_method_options(HttpRequest *request, HttpSlice *line)
+{
+    request->method = HTTP_METHOD_OPTIONS;
+
+    HttpResult ret = parse_uri(request, line);
+    if (ret != HTTP_OK) {
+        return ret;
+    }
+
+    return parse_http_version(request, line);
+}
+
+static HttpResult parse_method_patch(HttpRequest *request, HttpSlice *line)
+{
+    request->method = HTTP_METHOD_PATCH;
+
+    HttpResult ret = parse_uri(request, line);
+    if (ret != HTTP_OK) {
+        return ret;
+    }
+
+    return parse_http_version(request, line);
+}
+
 static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
 {
     HttpSlice line = http_buffer_next_line(buffer);
@@ -153,6 +201,22 @@ static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
 
     if (slice_match(&line, "POST ")) {
         return parse_method_post(request, &line);
+    }
+
+    if (slice_match(&line, "PUT ")) {
+        return parse_method_put(request, &line);
+    }
+
+    if (slice_match(&line, "DELETE ")) {
+        return parse_method_delete(request, &line);
+    }
+
+    if (slice_match(&line, "OPTIONS ")) {
+        return parse_method_options(request, &line);
+    }
+
+    if (slice_match(&line, "PATCH ")) {
+        return parse_method_patch(request, &line);
     }
 
     return HTTP_BAD_REQUEST;

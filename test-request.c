@@ -480,6 +480,86 @@ static void test_request_with_header_value_above_length_limit_fails(void)
     http_buffer_free(buffer);
 }
 
+static void test_put_request(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "PUT /items/42 HTTP/1.1\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(request->method == HTTP_METHOD_PUT);
+    assert(!strcmp(request->uri, "/items/42"));
+    assert(request->version == 11);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_delete_request(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "DELETE /items/42 HTTP/1.1\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(request->method == HTTP_METHOD_DELETE);
+    assert(!strcmp(request->uri, "/items/42"));
+    assert(request->version == 11);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_options_request(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "OPTIONS * HTTP/1.1\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(request->method == HTTP_METHOD_OPTIONS);
+    assert(!strcmp(request->uri, "*"));
+    assert(request->version == 11);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
+static void test_patch_request(void)
+{
+    HttpBuffer *buffer = http_buffer_new(128);
+    HttpRequest *request = http_request_new();
+
+    http_buffer_concat(
+        buffer,
+        "PATCH /items/42 HTTP/1.1\r\n"
+        "\r\n"
+    );
+
+    assert(http_request_parse(request, buffer) == HTTP_OK);
+    assert(request->method == HTTP_METHOD_PATCH);
+    assert(!strcmp(request->uri, "/items/42"));
+    assert(request->version == 11);
+
+    http_request_free(request);
+    http_buffer_free(buffer);
+}
+
 static void test_request_case_insensitive_header_name_lookup(void)
 {
     HttpBuffer *buffer = http_buffer_new(256);
@@ -521,6 +601,10 @@ void test_request(void)
     test_get_request();
     test_post_request();
     test_head_request();
+    test_put_request();
+    test_delete_request();
+    test_options_request();
+    test_patch_request();
 
     test_request_with_http_version_1_0();
     test_request_with_http_version_1_1();
