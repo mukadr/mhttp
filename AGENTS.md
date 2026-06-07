@@ -32,6 +32,7 @@ Tests live in `test-<module>.c` / `test-<module>.h` pairs. `test.c` contains `ma
 - Public API in `.h`, static helpers in `.c`.
 - Allocate with `calloc`, free with `free`. Check allocation results.
 - No comments unless the line is genuinely obscure.
+- Always open braces — `break`, `continue`, and `return` must stand on their own line inside braces.
 - Include order: own module header first, then standard library headers.
 
 ## Architecture
