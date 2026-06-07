@@ -18,7 +18,7 @@ check: test
 
 test: $(OBJS)
 	@echo "  LINK    $@"
-	@$(CC) $^ -o $@
+	@$(CC) $(CFLAGS) $^ -o $@
 
 -include $(patsubst %.o,%.d,$(OBJS))
 
@@ -30,4 +30,12 @@ clean:
 	@echo "  CLEAN"
 	@rm -f *.o *.d test
 
-.PHONY: all check clean
+sanitize: clean
+	@$(MAKE) CFLAGS="-std=c99 -g -fsanitize=address,undefined -Wall -Werror=implicit-function-declaration" check
+
+leaks: clean
+	@$(MAKE) CFLAGS="-std=c99 -g -Wall -Werror=implicit-function-declaration" test
+	@echo "  LEAKS"
+	@leaks -quiet -atExit -- ./test
+
+.PHONY: all check clean sanitize leaks
