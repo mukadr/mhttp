@@ -382,11 +382,10 @@ static int parse_hex_digit(int c)
 static int parse_chunk_size(HttpSlice *line)
 {
     int size = 0;
-    int d;
 
     while (true) {
         int c = slice_peek(line);
-        d = parse_hex_digit(c);
+        int d = parse_hex_digit(c);
         if (d < 0) {
             break;
         }
