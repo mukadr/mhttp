@@ -194,7 +194,8 @@ static void test_response_write_with_body(void)
     line = http_buffer_next_line(buffer);
     assert(slice_eq(&line, "\r\n"));
 
-    assert(buffer->pos != buffer->end);
+    line = http_buffer_next_line(buffer);
+    assert(slice_empty(&line));
 
     http_response_free(response);
     http_buffer_free(buffer);
