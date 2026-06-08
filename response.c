@@ -102,10 +102,10 @@ void http_response_set_body(HttpResponse *response, const char *body)
 size_t http_response_write(HttpResponse *response, HttpBuffer *buffer)
 {
     char status_line[64];
-    size_t total = 0;
 
     snprintf(status_line, sizeof(status_line), "HTTP/1.1 %d %s\r\n", response->status_code, response->reason);
-    total = http_buffer_concat(buffer, status_line);
+
+    size_t total = http_buffer_concat(buffer, status_line);
 
     HttpHeader *header = response->headers;
 
