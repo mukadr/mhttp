@@ -6,10 +6,6 @@ DEBUG = true
 CFLAGS += -fsanitize=address,undefined
 endif
 
-ifdef DSYM
-DEBUG = true
-endif
-
 ifdef DEBUG
 CFLAGS += -O0 -g
 else
@@ -49,7 +45,7 @@ sanitize: clean
 	@$(MAKE) SANITIZE=1 check
 
 leaks: clean
-	@$(MAKE) DSYM=1 test
+	@$(MAKE) DEBUG=1 test
 	@echo "  LEAKS"
 	@leaks -quiet -atExit -- ./test
 
