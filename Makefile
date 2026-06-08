@@ -1,12 +1,19 @@
 CC ?= gcc
-CFLAGS = -O2 -std=c99 -Wall -Werror=implicit-function-declaration
+CFLAGS = -std=c99 -Wall -Werror=implicit-function-declaration
 
 ifdef SANITIZE
-CFLAGS += -g -fsanitize=address,undefined
+DEBUG = true
+CFLAGS += -fsanitize=address,undefined
 endif
 
 ifdef DSYM
-CFLAGS += -g
+DEBUG = true
+endif
+
+ifdef DEBUG
+CFLAGS += -O0 -g
+else
+CFLAGS += -O2
 endif
 
 OBJS  = buffer.o
