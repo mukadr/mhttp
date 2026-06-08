@@ -1,5 +1,13 @@
 CC ?= gcc
-CFLAGS = -O2 -Wall -Werror=implicit-function-declaration -std=c99
+CFLAGS = -O2 -std=c99 -Wall -Werror=implicit-function-declaration
+
+ifdef SANITIZE
+CFLAGS += -g -fsanitize=address,undefined
+endif
+
+ifdef DSYM
+CFLAGS += -g
+endif
 
 OBJS  = buffer.o
 OBJS += request.o
@@ -31,10 +39,10 @@ clean:
 	@rm -f *.o *.d test
 
 sanitize: clean
-	@$(MAKE) CFLAGS="-std=c99 -g -fsanitize=address,undefined -Wall -Werror=implicit-function-declaration" check
+	@$(MAKE) SANITIZE=1 check
 
 leaks: clean
-	@$(MAKE) CFLAGS="-std=c99 -g -Wall -Werror=implicit-function-declaration" test
+	@$(MAKE) DSYM=1 test
 	@echo "  LEAKS"
 	@leaks -quiet -atExit -- ./test
 
