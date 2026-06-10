@@ -25,9 +25,12 @@ typedef enum HttpStatusCode {
     HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
 } HttpStatusCode;
 
+#define HTTP_HEADER_NAME_SIZE 256
+#define HTTP_HEADER_VALUE_SIZE 256
+
 typedef struct HttpHeader {
-    char name[256];
-    char value[256];
+    char name[HTTP_HEADER_NAME_SIZE];
+    char value[HTTP_HEADER_VALUE_SIZE];
     struct HttpHeader *next;
 } HttpHeader;
 

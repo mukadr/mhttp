@@ -59,16 +59,24 @@ void http_response_set_status(HttpResponse *response, int code)
 
 HttpResult http_response_set_header(HttpResponse *response, const char *name, const char *value)
 {
-    HttpHeader *header = calloc(1, sizeof(*header));
+    size_t name_len = strlen(name);
+    if (name_len >= HTTP_HEADER_NAME_SIZE) {
+        return HTTP_BAD_REQUEST;
+    }
 
+    size_t value_len = strlen(value);
+    if (value_len >= HTTP_HEADER_VALUE_SIZE) {
+        return HTTP_BAD_REQUEST;
+    }
+
+    HttpHeader *header = calloc(1, sizeof(*header));
     if (!header) {
         return HTTP_INTERNAL_ERROR;
     }
 
-    strncpy(header->name, name, sizeof(header->name) - 1);
-    header->name[sizeof(header->name) - 1] = '\0';
-    strncpy(header->value, value, sizeof(header->value) - 1);
-    header->value[sizeof(header->value) - 1] = '\0';
+    memcpy(header->name, name, name_len + 1);
+    memcpy(header->value, value, value_len + 1);
+
     header->next = response->headers;
     response->headers = header;
 
