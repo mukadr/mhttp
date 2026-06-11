@@ -1,6 +1,8 @@
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Werror=implicit-function-declaration
 
+OS := $(shell uname -s)
+
 ifdef SANITIZE
 DEBUG = true
 CFLAGS += -fsanitize=address,undefined
@@ -45,8 +47,13 @@ sanitize: clean
 	@$(MAKE) SANITIZE=1 check
 
 leaks: clean
+ifeq ($(OS),Darwin)
 	@$(MAKE) DEBUG=1 test
 	@echo "  LEAKS"
 	@leaks -quiet -atExit -- ./test
+else
+	@echo "  LEAKS"
+	@ASAN_OPTIONS=detect_leaks=1 make CC=gcc sanitize
+endif
 
 .PHONY: all check clean sanitize leaks

@@ -28,4 +28,4 @@ jobs:
     - name: sanitize with clang
       run: make CC=clang sanitize
     - name: asan leak check
-      run: ASAN_OPTIONS=detect_leaks=1 make CC=gcc sanitize
+      run: make leaks
