@@ -514,11 +514,6 @@ size_t http_request_read_body(HttpRequest *request, HttpBuffer *buffer, void *ds
     return http_request_read_body_with_content_length(request, buffer, dst, len);
 }
 
-bool http_request_is_chunked(const HttpRequest *request)
-{
-    return request->body_is_chunked;
-}
-
 int http_request_header_count(const HttpRequest *request)
 {
     const HttpHeader *header = request->headers;

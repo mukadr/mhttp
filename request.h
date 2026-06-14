@@ -39,6 +39,9 @@ int http_request_content_length(const HttpRequest *request);
 
 size_t http_request_read_body(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len);
 
-bool http_request_is_chunked(const HttpRequest *request);
+static inline bool http_request_is_chunked(const HttpRequest *request)
+{
+    return request->body_is_chunked;
+}
 
 #endif // MHTTP_REQUEST_H
