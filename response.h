@@ -20,7 +20,7 @@ void http_response_set_status(HttpResponse *response, int code);
 
 HttpResult http_response_set_header(HttpResponse *response, const char *name, const char *value);
 
-void http_response_set_body(HttpResponse *response, const char *body);
+HttpResult http_response_set_body(HttpResponse *response, const char *body);
 
 size_t http_response_write(HttpResponse *response, HttpBuffer *buffer);
 

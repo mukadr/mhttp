@@ -92,7 +92,7 @@ static void test_response_set_body(void)
 {
     HttpResponse *response = http_response_new();
 
-    http_response_set_body(response, "hello world");
+    assert(http_response_set_body(response, "hello world") == HTTP_OK);
 
     assert(response->body);
     assert(!strcmp(response->body, "hello world"));
@@ -105,8 +105,8 @@ static void test_response_set_body_replaces(void)
 {
     HttpResponse *response = http_response_new();
 
-    http_response_set_body(response, "first");
-    http_response_set_body(response, "second");
+    assert(http_response_set_body(response, "first") == HTTP_OK);
+    assert(http_response_set_body(response, "second") == HTTP_OK);
 
     assert(!strcmp(response->body, "second"));
     assert(response->body_length == 6);
@@ -118,7 +118,7 @@ static void test_response_set_body_null(void)
 {
     HttpResponse *response = http_response_new();
 
-    http_response_set_body(response, NULL);
+    assert(http_response_set_body(response, NULL) == HTTP_OK);
 
     assert(response->body == NULL);
     assert(response->body_length == 0);
@@ -178,7 +178,7 @@ static void test_response_write_with_body(void)
     HttpSlice line;
 
     assert(http_response_set_header(response, "Content-Type", "application/json") == HTTP_OK);
-    http_response_set_body(response, "{\"ok\":true}");
+    assert(http_response_set_body(response, "{\"ok\":true}") == HTTP_OK);
 
     http_response_write(response, buffer);
 
@@ -206,7 +206,7 @@ static void test_response_write_partial(void)
     HttpResponse *response = http_response_new();
     HttpBuffer *buffer = http_buffer_new(32);
 
-    http_response_set_body(response, "hello world");
+    assert(http_response_set_body(response, "hello world") == HTTP_OK);
     http_response_write(response, buffer);
 
     assert(buffer->end > buffer->pos);

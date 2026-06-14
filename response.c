@@ -82,7 +82,7 @@ HttpResult http_response_set_header(HttpResponse *response, const char *name, co
     return HTTP_OK;
 }
 
-void http_response_set_body(HttpResponse *response, const char *body)
+HttpResult http_response_set_body(HttpResponse *response, const char *body)
 {
     free(response->body);
     response->body = NULL;
@@ -92,18 +92,25 @@ void http_response_set_body(HttpResponse *response, const char *body)
         size_t len = strlen(body);
 
         response->body = malloc(len + 1);
-        if (response->body) {
-            memcpy(response->body, body, len + 1);
-            response->body_length = len;
+        if (!response->body) {
+            return HTTP_INTERNAL_ERROR;
         }
+        memcpy(response->body, body, len + 1);
+        response->body_length = (int)len;
 
         if (response->body_length > 0) {
             char cl[32];
+            HttpResult result;
 
             snprintf(cl, sizeof(cl), "%d", response->body_length);
-            http_response_set_header(response, "Content-Length", cl);
+            result = http_response_set_header(response, "Content-Length", cl);
+            if (result != HTTP_OK) {
+                return result;
+            }
         }
     }
+
+    return HTTP_OK;
 }
 
 size_t http_response_write(HttpResponse *response, HttpBuffer *buffer)
