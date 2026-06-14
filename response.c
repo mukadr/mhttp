@@ -9,8 +9,7 @@ HttpResponse *http_response_new(void)
     HttpResponse *response = calloc(1, sizeof(*response));
 
     if (response) {
-        response->status_code = HTTP_STATUS_OK;
-        response->reason = "OK";
+        http_response_set_status(response, HTTP_STATUS_OK);
     }
 
     return response;
