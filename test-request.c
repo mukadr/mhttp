@@ -29,19 +29,19 @@ static void test_request_with_malformed_content(void)
     http_buffer_reset(buffer);
 
     http_buffer_concat(buffer, "BLA\n");
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_buffer_concat(buffer, "GET\n");
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_buffer_concat(buffer, "GET \n");
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_buffer_concat(buffer, "GET / HTTP\n");
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_buffer_concat(buffer, "GET / HTTP2.\n");
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_buffer_concat(buffer,
         "GET "
@@ -52,7 +52,7 @@ static void test_request_with_malformed_content(void)
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
         "\r\n");
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -67,7 +67,7 @@ static void test_request_with_bad_line_ending(void)
         buffer,
         "GET /index.html HTTP/1.0\n"
     );
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_buffer_concat(
         buffer,
@@ -80,20 +80,20 @@ static void test_request_with_bad_line_ending(void)
         buffer,
         "GET /index.html HTTP/1.0 \r\n"
     );
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_buffer_concat(
         buffer,
         "GET /index.html HTTP/1.0\r \n"
     );
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_buffer_concat(
         buffer,
         "GET /index.html HTTP/1.0\r\n"
         "\n"
     );
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_buffer_concat(
         buffer,
@@ -101,7 +101,7 @@ static void test_request_with_bad_line_ending(void)
         "Host: www.example.com\r \n"
         "\r\n"
     );
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -115,7 +115,7 @@ static void test_request_with_null_byte_in_uri(void)
     static const char req[] = "GET /pa\x00th HTTP/1.1\r\n\r\n";
     buffer_write_raw(buffer, req, sizeof(req) - 1);
 
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -129,7 +129,7 @@ static void test_request_with_null_byte_in_header_name(void)
     static const char req[] = "GET / HTTP/1.1\r\nNa\x00me: value\r\n\r\n";
     buffer_write_raw(buffer, req, sizeof(req) - 1);
 
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -143,7 +143,7 @@ static void test_request_with_null_byte_in_header_value(void)
     static const char req[] = "GET / HTTP/1.1\r\nName: va\x00lue\r\n\r\n";
     buffer_write_raw(buffer, req, sizeof(req) - 1);
 
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -357,7 +357,7 @@ static void test_request_with_missing_header_name(void)
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
     http_buffer_concat(buffer, "\n");
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -400,7 +400,7 @@ static void test_request_with_header_count_above_limit_fails(void)
     }
     http_buffer_concat(buffer, "\r\n");
 
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -436,7 +436,7 @@ static void test_request_with_header_name_above_length_limit_fails(void)
     http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
     http_buffer_concat(buffer, header);
 
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);
@@ -474,7 +474,7 @@ static void test_request_with_header_value_above_length_limit_fails(void)
     http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
     http_buffer_concat(buffer, header);
 
-    assert(http_request_parse(request, buffer) == HTTP_BAD_REQUEST);
+    assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
     http_buffer_free(buffer);

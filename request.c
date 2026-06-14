@@ -56,11 +56,11 @@ static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
         }
 
         if (c == 0) {
-            return HTTP_BAD_REQUEST;
+            return HTTP_INVALID_REQUEST;
         }
 
         if (len == sizeof(request->uri) - 1) {
-            return HTTP_BAD_REQUEST;
+            return HTTP_INVALID_REQUEST;
         }
 
         request->uri[len++] = (char)c;
@@ -68,7 +68,7 @@ static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
 
     request->uri[len] = '\0';
 
-    return len ? HTTP_OK : HTTP_BAD_REQUEST;
+    return len ? HTTP_OK : HTTP_INVALID_REQUEST;
 }
 
 static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
@@ -76,19 +76,19 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
     if (slice_match(line, "HTTP/")) {
         int c = slice_peek(line);
         if (c < '0' || c > '9') {
-            return HTTP_BAD_REQUEST;
+            return HTTP_INVALID_REQUEST;
         }
 
         request->version = c - '0';
 
         c = slice_next(line);
         if (c != '.') {
-            return HTTP_BAD_REQUEST;
+            return HTTP_INVALID_REQUEST;
         }
 
         c = slice_next(line);
         if (c < '0' || c > '9') {
-            return HTTP_BAD_REQUEST;
+            return HTTP_INVALID_REQUEST;
         }
 
         request->version = request->version * 10 + c - '0';
@@ -96,13 +96,13 @@ static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
         slice_skip(line);
 
         if (!slice_eol(line)) {
-            return HTTP_BAD_REQUEST;
+            return HTTP_INVALID_REQUEST;
         }
     } else if (slice_eol(line)) {
         // HTTP/0.9 (no version present)
         request->version = 9;
     } else {
-        return HTTP_BAD_REQUEST;
+        return HTTP_INVALID_REQUEST;
     }
 
     return HTTP_OK;
@@ -227,7 +227,7 @@ static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
         return parse_method_patch(request, &line);
     }
 
-    return HTTP_BAD_REQUEST;
+    return HTTP_INVALID_REQUEST;
 }
 
 static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader **out_header)
@@ -291,7 +291,7 @@ static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader
 
 err_bad_request:
     free(header);
-    return HTTP_BAD_REQUEST;
+    return HTTP_INVALID_REQUEST;
 }
 
 #define HTTP_MAX_HEADERS 100
@@ -313,7 +313,7 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
             break;
         }
         if (count >= HTTP_MAX_HEADERS) {
-            return HTTP_BAD_REQUEST;
+            return HTTP_INVALID_REQUEST;
         }
         ret = parse_header(request, &line, &header);
         if (ret != HTTP_OK) {

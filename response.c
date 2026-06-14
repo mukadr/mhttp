@@ -61,12 +61,12 @@ HttpResult http_response_set_header(HttpResponse *response, const char *name, co
 {
     size_t name_len = strlen(name);
     if (name_len >= HTTP_HEADER_NAME_SIZE) {
-        return HTTP_BAD_REQUEST;
+        return HTTP_INVALID_REQUEST;
     }
 
     size_t value_len = strlen(value);
     if (value_len >= HTTP_HEADER_VALUE_SIZE) {
-        return HTTP_BAD_REQUEST;
+        return HTTP_INVALID_REQUEST;
     }
 
     HttpHeader *header = calloc(1, sizeof(*header));

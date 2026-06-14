@@ -30,7 +30,7 @@ Tests live in `test-<module>.c` / `test-<module>.h` pairs. `test.c` contains `ma
 - Include guard: `MHTTP_<MODULE>_H`
 - Types: `HttpXxx` (e.g. `HttpBuffer`, `HttpSlice`, `HttpRequest`)
 - Functions: `http_<module>_<action>` (e.g. `http_buffer_concat`, `http_request_parse`)
-- Enum values: `HTTP_<UPPER>` (e.g. `HTTP_OK`, `HTTP_BAD_REQUEST`)
+- Enum values: `HTTP_<UPPER>` (e.g. `HTTP_OK`, `HTTP_INVALID_REQUEST`)
 - Public API in `.h`, static helpers in `.c`.
 - Allocate with `calloc`, free with `free`. Check allocation results.
 - No comments unless the line is genuinely obscure.
@@ -57,7 +57,7 @@ Single-header HTTP parsing library — no external dependencies (libc only).
 - Header count is **cumulative** across multiple `http_request_parse` calls and must not exceed 100.
 - Max URI length: 255 chars. Max header name/value length: 255 chars each.
 - Line endings must be `\r\n`; bare `\n` is rejected.
-- Null bytes in URI, header names, or header values trigger `HTTP_BAD_REQUEST`.
+- Null bytes in URI, header names, or header values trigger `HTTP_INVALID_REQUEST`.
 - The `test` binary aborts on first assertion failure — fix one test at a time.
 
 ## Response builder

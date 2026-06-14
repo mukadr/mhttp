@@ -4,7 +4,7 @@
 typedef enum HttpResult {
     HTTP_OK,
     HTTP_NEED_MORE_INPUT,
-    HTTP_BAD_REQUEST,
+    HTTP_INVALID_REQUEST,
     HTTP_INTERNAL_ERROR
 } HttpResult;
 
