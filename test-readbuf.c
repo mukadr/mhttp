@@ -3,114 +3,114 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "buffer.h"
+#include "readbuf.h"
 #include "slice.h"
 
 static void test_zero_size_buffer(void)
 {
-    HttpBuffer *buffer = http_buffer_new(0);
+    HttpReadBuf *buffer = http_readbuf_new(0);
 
     assert(buffer == NULL);
 }
 
-static void test_buffer1(void)
+static void test_readbuf1(void)
 {
-    HttpBuffer *buffer = http_buffer_new(1);
+    HttpReadBuf *buffer = http_readbuf_new(1);
     HttpSlice line;
     size_t ret;
 
-    ret = http_buffer_concat(buffer, "abc");
+    ret = http_readbuf_feed(buffer, "abc");
     assert(ret == 1);
     assert(buffer->buf[0] == 'a');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 1);
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_empty(&line));
 
-    ret = http_buffer_concat(buffer, "\n");
+    ret = http_readbuf_feed(buffer, "\n");
     assert(ret == 0);
     assert(buffer->buf[0] == 'a');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 1);
 
-    http_buffer_reset(buffer);
+    http_readbuf_reset(buffer);
 
-    ret = http_buffer_concat(buffer, "\n");
+    ret = http_readbuf_feed(buffer, "\n");
     assert(ret == 1);
     assert(buffer->buf[0] == '\n');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 1);
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_empty(&line));
 
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
-static void test_buffer2(void)
+static void test_readbuf2(void)
 {
-    HttpBuffer *buffer = http_buffer_new(2);
+    HttpReadBuf *buffer = http_readbuf_new(2);
     HttpSlice line;
     size_t ret;
 
-    ret = http_buffer_concat(buffer, "abc");
+    ret = http_readbuf_feed(buffer, "abc");
     assert(ret == 2);
     assert(buffer->buf[0] == 'a');
     assert(buffer->buf[1] == 'b');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 2);
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_empty(&line));
 
-    ret = http_buffer_concat(buffer, "a\n");
+    ret = http_readbuf_feed(buffer, "a\n");
     assert(ret == 0);
 
-    http_buffer_reset(buffer);
+    http_readbuf_reset(buffer);
 
-    ret = http_buffer_concat(buffer, "a\n");
+    ret = http_readbuf_feed(buffer, "a\n");
     assert(ret == 2);
     assert(buffer->buf[0] == 'a');
     assert(buffer->buf[1] == '\n');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 2);
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "a\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_empty(&line));
 
-    ret = http_buffer_concat(buffer, "\n\n");
+    ret = http_readbuf_feed(buffer, "\n\n");
     assert(ret == 2);
     assert(buffer->buf[0] == '\n');
     assert(buffer->buf[1] == '\n');
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 2);
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_empty(&line));
 
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
-static void test_buffer3(void)
+static void test_readbuf3(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpSlice line;
     size_t ret;
 
-    ret = http_buffer_concat(
+    ret = http_readbuf_feed(
         buffer,
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.example.com\r\n"
@@ -122,31 +122,31 @@ static void test_buffer3(void)
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 78);
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "GET /index.html HTTP/1.0\r\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "Host: www.example.com\r\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "User-Agent: TestAgent/1.0\r\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "\r\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_empty(&line));
 
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
-static void test_buffer4(void)
+static void test_readbuf4(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpSlice line;
     size_t ret;
 
-    ret = http_buffer_concat(
+    ret = http_readbuf_feed(
         buffer,
         "GET /index.html HTTP/1.0\r\n"
         "Host: www"
@@ -156,13 +156,13 @@ static void test_buffer4(void)
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 35);
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "GET /index.html HTTP/1.0\r\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_empty(&line));
 
-    ret = http_buffer_concat(
+    ret = http_readbuf_feed(
         buffer,
         ".example.com\r\n"
         "User-Agent: TestAgent/1.0\r\n"
@@ -173,26 +173,26 @@ static void test_buffer4(void)
     assert(buffer->pos == buffer->buf);
     assert(buffer->end == buffer->buf + 52);
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "Host: www.example.com\r\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "User-Agent: TestAgent/1.0\r\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_eq(&line, "\r\n"));
 
-    line = http_buffer_next_line(buffer);
+    line = http_readbuf_next_line(buffer);
     assert(slice_empty(&line));
 
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
-void test_buffer(void)
+void test_readbuf(void)
 {
     test_zero_size_buffer();
-    test_buffer1();
-    test_buffer2();
-    test_buffer3();
-    test_buffer4();
+    test_readbuf1();
+    test_readbuf2();
+    test_readbuf3();
+    test_readbuf4();
 }

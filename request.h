@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #include "http.h"
-#include "buffer.h"
+#include "readbuf.h"
 
 typedef enum HttpParseState {
     HTTP_PARSE_REQUEST_LINE,
@@ -29,7 +29,7 @@ HttpRequest *http_request_new(void);
 
 void http_request_free(HttpRequest *request);
 
-HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer);
+HttpResult http_request_parse(HttpRequest *request, HttpReadBuf *buffer);
 
 int http_request_header_count(const HttpRequest *request);
 
@@ -37,7 +37,7 @@ const char *http_request_get_header(const HttpRequest *request, const char *name
 
 int http_request_content_length(const HttpRequest *request);
 
-size_t http_request_read_body(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len);
+size_t http_request_read_body(HttpRequest *request, HttpReadBuf *buffer, void *dst, size_t len);
 
 static inline bool http_request_is_chunked(const HttpRequest *request)
 {

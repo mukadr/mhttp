@@ -1,13 +1,13 @@
 #include <assert.h>
 #include <string.h>
 
-#include "buffer.h"
+#include "readbuf.h"
 #include "request.h"
 
 #include "test-request.h"
 
-// Bypass null checking from http_buffer_concat
-static void buffer_write_raw(HttpBuffer *buffer, const void *data, size_t len)
+// Bypass null checking from http_readbuf_feed
+static void buffer_write_raw(HttpReadBuf *buffer, const void *data, size_t len)
 {
     size_t remaining = buffer->end - buffer->pos;
     memmove(buffer->buf, buffer->pos, remaining);
@@ -18,32 +18,32 @@ static void buffer_write_raw(HttpBuffer *buffer, const void *data, size_t len)
 
 static void test_request_with_malformed_content(void)
 {
-    HttpBuffer *buffer = http_buffer_new(512);
+    HttpReadBuf *buffer = http_readbuf_new(512);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(buffer, "");
+    http_readbuf_feed(buffer, "");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, "X");
+    http_readbuf_feed(buffer, "X");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
-    http_buffer_reset(buffer);
+    http_readbuf_reset(buffer);
 
-    http_buffer_concat(buffer, "BLA\n");
+    http_readbuf_feed(buffer, "BLA\n");
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
-    http_buffer_concat(buffer, "GET\n");
+    http_readbuf_feed(buffer, "GET\n");
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
-    http_buffer_concat(buffer, "GET \n");
+    http_readbuf_feed(buffer, "GET \n");
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
-    http_buffer_concat(buffer, "GET / HTTP\n");
+    http_readbuf_feed(buffer, "GET / HTTP\n");
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
-    http_buffer_concat(buffer, "GET / HTTP2.\n");
+    http_readbuf_feed(buffer, "GET / HTTP2.\n");
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
-    http_buffer_concat(buffer,
+    http_readbuf_feed(buffer,
         "GET "
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
@@ -55,47 +55,47 @@ static void test_request_with_malformed_content(void)
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_bad_line_ending(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "GET /index.html HTTP/1.0\n"
     );
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "GET /index.html HTTP/1.0\r"
     );
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
-    http_buffer_reset(buffer);
+    http_readbuf_reset(buffer);
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "GET /index.html HTTP/1.0 \r\n"
     );
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "GET /index.html HTTP/1.0\r \n"
     );
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "GET /index.html HTTP/1.0\r\n"
         "\n"
     );
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.example.com\r \n"
@@ -104,12 +104,12 @@ static void test_request_with_bad_line_ending(void)
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_null_byte_in_uri(void)
 {
-    HttpBuffer *buffer = http_buffer_new(64);
+    HttpReadBuf *buffer = http_readbuf_new(64);
     HttpRequest *request = http_request_new();
 
     static const char req[] = "GET /pa\x00th HTTP/1.1\r\n\r\n";
@@ -118,12 +118,12 @@ static void test_request_with_null_byte_in_uri(void)
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_null_byte_in_header_name(void)
 {
-    HttpBuffer *buffer = http_buffer_new(64);
+    HttpReadBuf *buffer = http_readbuf_new(64);
     HttpRequest *request = http_request_new();
 
     static const char req[] = "GET / HTTP/1.1\r\nNa\x00me: value\r\n\r\n";
@@ -132,12 +132,12 @@ static void test_request_with_null_byte_in_header_name(void)
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_null_byte_in_header_value(void)
 {
-    HttpBuffer *buffer = http_buffer_new(64);
+    HttpReadBuf *buffer = http_readbuf_new(64);
     HttpRequest *request = http_request_new();
 
     static const char req[] = "GET / HTTP/1.1\r\nName: va\x00lue\r\n\r\n";
@@ -146,15 +146,15 @@ static void test_request_with_null_byte_in_header_value(void)
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_get_request(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "GET /\r\n"
         "\r\n"
@@ -166,15 +166,15 @@ static void test_get_request(void)
     assert(request->version == 9);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_post_request(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /\r\n"
         "\r\n"
@@ -186,15 +186,15 @@ static void test_post_request(void)
     assert(request->version == 9);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_head_request(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "HEAD /\r\n"
         "\r\n"
@@ -206,15 +206,15 @@ static void test_head_request(void)
     assert(request->version == 9);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_http_version_1_0(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "GET /index.html HTTP/1.0\r\n"
         "\r\n"
@@ -226,15 +226,15 @@ static void test_request_with_http_version_1_0(void)
     assert(request->version == 10);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_http_version_1_1(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /static/chat.png HTTP/1.1\r\n"
         "\r\n"
@@ -245,15 +245,15 @@ static void test_request_with_http_version_1_1(void)
     assert(request->version == 11);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_headers(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST / HTTP/1.1\r\n"
         "Host: www.example.com\r\n"
@@ -280,45 +280,45 @@ static void test_request_with_headers(void)
     assert(!strcmp(ua, "TestAgent/1.0"));
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_headers_needing_more_input(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(buffer, "HEAD /tralala");
+    http_readbuf_feed(buffer, "HEAD /tralala");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, ".html HTT");
+    http_readbuf_feed(buffer, ".html HTT");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, "P/1.0\r\n");
+    http_readbuf_feed(buffer, "P/1.0\r\n");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, "Host");
+    http_readbuf_feed(buffer, "Host");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, ":");
+    http_readbuf_feed(buffer, ":");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, " www.example");
+    http_readbuf_feed(buffer, " www.example");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, ".com\r\nApi-Key: 123456\r\nUse");
+    http_readbuf_feed(buffer, ".com\r\nApi-Key: 123456\r\nUse");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, "r-Agen");
+    http_readbuf_feed(buffer, "r-Agen");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, "t: TestAgent");
+    http_readbuf_feed(buffer, "t: TestAgent");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, "/1.0\r\n");
+    http_readbuf_feed(buffer, "/1.0\r\n");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, "\r\n");
+    http_readbuf_feed(buffer, "\r\n");
     assert(http_request_parse(request, buffer) == HTTP_OK);
 
     // Request
@@ -342,53 +342,53 @@ static void test_request_with_headers_needing_more_input(void)
     assert(!strcmp(user_agent, "TestAgent/1.0"));
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_missing_header_name(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(buffer, "HEAD /hello\r\n");
+    http_readbuf_feed(buffer, "HEAD /hello\r\n");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, ": world\r");
+    http_readbuf_feed(buffer, ": world\r");
     assert(http_request_parse(request, buffer) == HTTP_NEED_MORE_INPUT);
 
-    http_buffer_concat(buffer, "\n");
+    http_readbuf_feed(buffer, "\n");
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_header_count_below_limit_succeeds(void)
 {
-    HttpBuffer *buffer = http_buffer_new(1024);
+    HttpReadBuf *buffer = http_readbuf_new(1024);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
+    http_readbuf_feed(buffer, "GET / HTTP/1.1\r\n");
     for (int i = 0; i < 100; i++) {
-        http_buffer_concat(buffer, "H: v\r\n");
+        http_readbuf_feed(buffer, "H: v\r\n");
     }
-    http_buffer_concat(buffer, "\r\n");
+    http_readbuf_feed(buffer, "\r\n");
 
     assert(http_request_parse(request, buffer) == HTTP_OK);
     assert(http_request_header_count(request) == 100);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_header_count_above_limit_fails(void)
 {
-    HttpBuffer *buffer = http_buffer_new(1024);
+    HttpReadBuf *buffer = http_readbuf_new(1024);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
+    http_readbuf_feed(buffer, "GET / HTTP/1.1\r\n");
     for (int i = 0; i < 50; i++) {
-        http_buffer_concat(buffer, "H: v\r\n");
+        http_readbuf_feed(buffer, "H: v\r\n");
     }
 
     // Make sure the count is tracked across multiple calls, not just within a single call
@@ -396,55 +396,55 @@ static void test_request_with_header_count_above_limit_fails(void)
     assert(http_request_header_count(request) == 50);
 
     for (int i = 0; i < 51; i++) {
-        http_buffer_concat(buffer, "H: v\r\n");
+        http_readbuf_feed(buffer, "H: v\r\n");
     }
-    http_buffer_concat(buffer, "\r\n");
+    http_readbuf_feed(buffer, "\r\n");
 
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_header_name_below_length_limit_succeeds(void)
 {
-    HttpBuffer *buffer = http_buffer_new(512);
+    HttpReadBuf *buffer = http_readbuf_new(512);
     HttpRequest *request = http_request_new();
 
     char header[270];
     memset(header, 'A', 255);
     strcpy(header + 255, ": v\r\n\r\n");
 
-    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
-    http_buffer_concat(buffer, header);
+    http_readbuf_feed(buffer, "GET / HTTP/1.1\r\n");
+    http_readbuf_feed(buffer, header);
 
     assert(http_request_parse(request, buffer) == HTTP_OK);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_header_name_above_length_limit_fails(void)
 {
-    HttpBuffer *buffer = http_buffer_new(512);
+    HttpReadBuf *buffer = http_readbuf_new(512);
     HttpRequest *request = http_request_new();
 
     char header[270];
     memset(header, 'A', 256);
     strcpy(header + 256, ": v\r\n\r\n");
 
-    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
-    http_buffer_concat(buffer, header);
+    http_readbuf_feed(buffer, "GET / HTTP/1.1\r\n");
+    http_readbuf_feed(buffer, header);
 
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_header_value_below_length_limit_succeeds(void)
 {
-    HttpBuffer *buffer = http_buffer_new(512);
+    HttpReadBuf *buffer = http_readbuf_new(512);
     HttpRequest *request = http_request_new();
 
     char header[270];
@@ -452,18 +452,18 @@ static void test_request_with_header_value_below_length_limit_succeeds(void)
     memset(header + 3, 'B', 255);
     strcpy(header + 3 + 255, "\r\n\r\n");
 
-    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
-    http_buffer_concat(buffer, header);
+    http_readbuf_feed(buffer, "GET / HTTP/1.1\r\n");
+    http_readbuf_feed(buffer, header);
 
     assert(http_request_parse(request, buffer) == HTTP_OK);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_with_header_value_above_length_limit_fails(void)
 {
-    HttpBuffer *buffer = http_buffer_new(512);
+    HttpReadBuf *buffer = http_readbuf_new(512);
     HttpRequest *request = http_request_new();
 
     char header[270];
@@ -471,21 +471,21 @@ static void test_request_with_header_value_above_length_limit_fails(void)
     memset(header + 3, 'B', 256);
     strcpy(header + 3 + 256, "\r\n\r\n");
 
-    http_buffer_concat(buffer, "GET / HTTP/1.1\r\n");
-    http_buffer_concat(buffer, header);
+    http_readbuf_feed(buffer, "GET / HTTP/1.1\r\n");
+    http_readbuf_feed(buffer, header);
 
     assert(http_request_parse(request, buffer) == HTTP_INVALID_REQUEST);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_put_request(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "PUT /items/42 HTTP/1.1\r\n"
         "\r\n"
@@ -497,15 +497,15 @@ static void test_put_request(void)
     assert(request->version == 11);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_delete_request(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "DELETE /items/42 HTTP/1.1\r\n"
         "\r\n"
@@ -517,15 +517,15 @@ static void test_delete_request(void)
     assert(request->version == 11);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_options_request(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "OPTIONS * HTTP/1.1\r\n"
         "\r\n"
@@ -537,15 +537,15 @@ static void test_options_request(void)
     assert(request->version == 11);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_patch_request(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "PATCH /items/42 HTTP/1.1\r\n"
         "\r\n"
@@ -557,15 +557,15 @@ static void test_patch_request(void)
     assert(request->version == 11);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_full_in_buffer(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /submit HTTP/1.1\r\n"
         "Content-Length: 7\r\n"
@@ -585,15 +585,15 @@ static void test_request_body_full_in_buffer(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_incremental(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /upload HTTP/1.1\r\n"
         "Content-Length: 10\r\n"
@@ -609,7 +609,7 @@ static void test_request_body_incremental(void)
     assert(ret == 5);
     assert(!memcmp(body, "hello", 5));
 
-    http_buffer_concat(buffer, " worl");
+    http_readbuf_feed(buffer, " worl");
 
     ret = http_request_read_body(request, buffer, body + 5, sizeof(body) - 5);
     assert(ret == 5);
@@ -619,15 +619,15 @@ static void test_request_body_incremental(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_no_content_length(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "GET / HTTP/1.1\r\n"
         "\r\n"
@@ -641,15 +641,15 @@ static void test_request_no_content_length(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_content_length_zero(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /empty HTTP/1.1\r\n"
         "Content-Length: 0\r\n"
@@ -664,15 +664,15 @@ static void test_request_content_length_zero(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_clamped_to_content_length(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /data HTTP/1.1\r\n"
         "Content-Length: 3\r\n"
@@ -692,15 +692,15 @@ static void test_request_body_clamped_to_content_length(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_buffer_smaller_than_content(void)
 {
-    HttpBuffer *buffer = http_buffer_new(64);
+    HttpReadBuf *buffer = http_readbuf_new(64);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /data HTTP/1.1\r\n"
         "Content-Length: 50\r\n"
@@ -714,19 +714,19 @@ static void test_request_body_buffer_smaller_than_content(void)
     int total = 0;
     size_t ret;
 
-    http_buffer_concat(buffer, "AAAAAAAAAABBBBBBBBBB");
+    http_readbuf_feed(buffer, "AAAAAAAAAABBBBBBBBBB");
     ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
     assert(ret == 20);
     total += ret;
     assert(!memcmp(body, "AAAAAAAAAABBBBBBBBBB", 20));
 
-    http_buffer_concat(buffer, "CCCCCCCCCCDDDDDDDDDD");
+    http_readbuf_feed(buffer, "CCCCCCCCCCDDDDDDDDDD");
     ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
     assert(ret == 20);
     total += ret;
     assert(!memcmp(body + 20, "CCCCCCCCCCDDDDDDDDDD", 20));
 
-    http_buffer_concat(buffer, "EEEEEEEEEE");
+    http_readbuf_feed(buffer, "EEEEEEEEEE");
     ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
     assert(ret == 10);
     total += ret;
@@ -737,15 +737,15 @@ static void test_request_body_buffer_smaller_than_content(void)
     assert(total == 50);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_chunked_single(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /data HTTP/1.1\r\n"
         "Transfer-Encoding: chunked\r\n"
@@ -768,15 +768,15 @@ static void test_request_body_chunked_single(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_chunked_multiple(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /data HTTP/1.1\r\n"
         "Transfer-Encoding: chunked\r\n"
@@ -801,15 +801,15 @@ static void test_request_body_chunked_multiple(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_chunked_incremental(void)
 {
-    HttpBuffer *buffer = http_buffer_new(128);
+    HttpReadBuf *buffer = http_readbuf_new(128);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /data HTTP/1.1\r\n"
         "Transfer-Encoding: chunked\r\n"
@@ -829,19 +829,19 @@ static void test_request_body_chunked_incremental(void)
     assert(ret == 5);
     total += ret;
 
-    http_buffer_concat(buffer, " wor");
+    http_readbuf_feed(buffer, " wor");
 
     ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
     assert(ret == 4);
     total += ret;
 
-    http_buffer_concat(buffer, "l");
+    http_readbuf_feed(buffer, "l");
 
     ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
     assert(ret == 1);
     total += ret;
 
-    http_buffer_concat(buffer, "d\r\n0\r\n\r\n");
+    http_readbuf_feed(buffer, "d\r\n0\r\n\r\n");
 
     ret = http_request_read_body(request, buffer, body + total, sizeof(body) - total);
     assert(ret == 0);
@@ -852,15 +852,15 @@ static void test_request_body_chunked_incremental(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_chunked_no_header(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /data HTTP/1.1\r\n"
         "Content-Length: 5\r\n"
@@ -872,15 +872,15 @@ static void test_request_body_chunked_no_header(void)
     assert(!http_request_is_chunked(request));
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_chunked_empty(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /data HTTP/1.1\r\n"
         "Transfer-Encoding: chunked\r\n"
@@ -897,15 +897,15 @@ static void test_request_body_chunked_empty(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_chunked_no_header_data_yet(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /data HTTP/1.1\r\n"
         "Transfer-Encoding: chunked\r\n"
@@ -919,7 +919,7 @@ static void test_request_body_chunked_no_header_data_yet(void)
     size_t ret = http_request_read_body(request, buffer, body, sizeof(body));
     assert(ret == 0);
 
-    http_buffer_concat(buffer, "5\r\nhello\r\n0\r\n\r\n");
+    http_readbuf_feed(buffer, "5\r\nhello\r\n0\r\n\r\n");
 
     ret = http_request_read_body(request, buffer, body, sizeof(body));
     assert(ret == 5);
@@ -929,15 +929,15 @@ static void test_request_body_chunked_no_header_data_yet(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_chunked_trailer_split(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /data HTTP/1.1\r\n"
         "Transfer-Encoding: chunked\r\n"
@@ -955,7 +955,7 @@ static void test_request_body_chunked_trailer_split(void)
     assert(ret == 5);
     assert(!memcmp(body, "hello", 5));
 
-    http_buffer_concat(buffer, "\r\n");
+    http_readbuf_feed(buffer, "\r\n");
 
     ret = http_request_read_body(request, buffer, body, sizeof(body));
     assert(ret == 0);
@@ -964,15 +964,15 @@ static void test_request_body_chunked_trailer_split(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_chunked_trailer_header(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /data HTTP/1.1\r\n"
         "Transfer-Encoding: chunked\r\n"
@@ -996,15 +996,15 @@ static void test_request_body_chunked_trailer_header(void)
     assert(ret == 0);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_body_chunked_user_buffer_small(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "POST /data HTTP/1.1\r\n"
         "Transfer-Encoding: chunked\r\n"
@@ -1047,15 +1047,15 @@ static void test_request_body_chunked_user_buffer_small(void)
     assert(total == 10);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 static void test_request_case_insensitive_header_name_lookup(void)
 {
-    HttpBuffer *buffer = http_buffer_new(256);
+    HttpReadBuf *buffer = http_readbuf_new(256);
     HttpRequest *request = http_request_new();
 
-    http_buffer_concat(
+    http_readbuf_feed(
         buffer,
         "GET / HTTP/1.1\r\n"
         "Content-Type: text/html\r\n"
@@ -1076,7 +1076,7 @@ static void test_request_case_insensitive_header_name_lookup(void)
     assert(http_request_get_header(request, "Authorization") == NULL);
 
     http_request_free(request);
-    http_buffer_free(buffer);
+    http_readbuf_free(buffer);
 }
 
 void test_request(void)

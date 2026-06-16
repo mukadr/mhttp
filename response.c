@@ -111,29 +111,51 @@ HttpResult http_response_set_body(HttpResponse *response, const char *body)
     return ret;
 }
 
-size_t http_response_write(HttpResponse *response, HttpBuffer *buffer)
+HttpResult http_response_write(HttpResponse *response, HttpWriteBuf *buffer)
 {
     char status_line[64];
+    size_t slen;
+    size_t written;
+    int ret;
 
-    snprintf(status_line, sizeof(status_line), "HTTP/1.1 %d %s\r\n", response->status_code, response->reason);
+    ret = snprintf(status_line, sizeof(status_line), "HTTP/1.1 %d %s\r\n", response->status_code, response->reason);
+    if (ret < 0) {
+        return HTTP_INTERNAL_ERROR;
+    }
 
-    size_t total = http_buffer_concat(buffer, status_line);
+    slen = (size_t)ret;
+
+    written = http_writebuf_write(buffer, status_line);
+    if (written < slen) {
+        return HTTP_INTERNAL_ERROR;
+    }
 
     HttpHeader *header = response->headers;
 
     while (header) {
         char line[520];
+        size_t llen;
 
-        snprintf(line, sizeof(line), "%s: %s\r\n", header->name, header->value);
-        total += http_buffer_concat(buffer, line);
+        llen = (size_t)snprintf(line, sizeof(line), "%s: %s\r\n", header->name, header->value);
+
+        written = http_writebuf_write(buffer, line);
+        if (written < llen) {
+            return HTTP_INTERNAL_ERROR;
+        }
         header = header->next;
     }
 
-    total += http_buffer_concat(buffer, "\r\n");
-
-    if (response->body) {
-        total += http_buffer_concat(buffer, response->body);
+    written = http_writebuf_write(buffer, "\r\n");
+    if (written < 2) {
+        return HTTP_INTERNAL_ERROR;
     }
 
-    return total;
+    if (response->body) {
+        written = http_writebuf_write(buffer, response->body);
+        if (written < response->body_length) {
+            return HTTP_INTERNAL_ERROR;
+        }
+    }
+
+    return HTTP_OK;
 }

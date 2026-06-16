@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "request.h"
-#include "buffer.h"
+#include "readbuf.h"
 
 enum {
     CHUNK_NEED_HEADER = -1,
@@ -192,9 +192,9 @@ static HttpResult parse_method_patch(HttpRequest *request, HttpSlice *line)
     return parse_http_version(request, line);
 }
 
-static HttpResult parse_method(HttpRequest *request, HttpBuffer *buffer)
+static HttpResult parse_method(HttpRequest *request, HttpReadBuf *buffer)
 {
-    HttpSlice line = http_buffer_next_line(buffer);
+    HttpSlice line = http_readbuf_next_line(buffer);
     if (slice_empty(&line)) {
         return HTTP_NEED_MORE_INPUT;
     }
@@ -296,7 +296,7 @@ err_bad_request:
 
 #define HTTP_MAX_HEADERS 100
 
-static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
+static HttpResult parse_headers(HttpRequest *request, HttpReadBuf *buffer)
 {
     HttpHeader **header_ptr = &request->headers;
     int count = http_request_header_count(request);
@@ -305,7 +305,7 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
         HttpResult ret;
         HttpHeader *header = NULL;
 
-        HttpSlice line = http_buffer_next_line(buffer);
+        HttpSlice line = http_readbuf_next_line(buffer);
         if (slice_empty(&line)) {
             return HTTP_NEED_MORE_INPUT;
         }
@@ -328,7 +328,7 @@ static HttpResult parse_headers(HttpRequest *request, HttpBuffer *buffer)
     return HTTP_OK;
 }
 
-HttpResult http_request_parse(HttpRequest *request, HttpBuffer *buffer)
+HttpResult http_request_parse(HttpRequest *request, HttpReadBuf *buffer)
 {
     if (request->state == HTTP_PARSE_REQUEST_LINE) {
         HttpResult ret = parse_method(request, buffer);
@@ -396,7 +396,7 @@ static int parse_chunk_size(HttpSlice *line)
     return size;
 }
 
-static size_t http_request_read_chunked_body(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len)
+static size_t http_request_read_chunked_body(HttpRequest *request, HttpReadBuf *buffer, void *dst, size_t len)
 {
     if (request->body_done) {
         return 0;
@@ -412,7 +412,7 @@ static size_t http_request_read_chunked_body(HttpRequest *request, HttpBuffer *b
         }
 
         if (request->chunk_size == CHUNK_NEED_HEADER) {
-            HttpSlice line = http_buffer_next_line(buffer);
+            HttpSlice line = http_readbuf_next_line(buffer);
             if (slice_empty(&line)) {
                 break;
             }
@@ -426,7 +426,7 @@ static size_t http_request_read_chunked_body(HttpRequest *request, HttpBuffer *b
         }
 
         if (request->chunk_size == CHUNK_TRAILER) {
-            HttpSlice line = http_buffer_next_line(buffer);
+            HttpSlice line = http_readbuf_next_line(buffer);
             if (slice_empty(&line)) {
                 break;
             }
@@ -437,7 +437,7 @@ static size_t http_request_read_chunked_body(HttpRequest *request, HttpBuffer *b
         }
 
         if (request->chunk_size == CHUNK_NEED_CRLF) {
-            HttpSlice line = http_buffer_next_line(buffer);
+            HttpSlice line = http_readbuf_next_line(buffer);
             if (slice_empty(&line)) {
                 break;
             }
@@ -477,7 +477,7 @@ static size_t http_request_read_chunked_body(HttpRequest *request, HttpBuffer *b
     return total;
 }
 
-static size_t http_request_read_body_with_content_length(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len)
+static size_t http_request_read_body_with_content_length(HttpRequest *request, HttpReadBuf *buffer, void *dst, size_t len)
 {
     if (request->content_length == 0) {
         return 0;
@@ -505,7 +505,7 @@ static size_t http_request_read_body_with_content_length(HttpRequest *request, H
     return to_copy;
 }
 
-size_t http_request_read_body(HttpRequest *request, HttpBuffer *buffer, void *dst, size_t len)
+size_t http_request_read_body(HttpRequest *request, HttpReadBuf *buffer, void *dst, size_t len)
 {
     if (request->body_is_chunked) {
         return http_request_read_chunked_body(request, buffer, dst, len);

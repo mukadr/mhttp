@@ -28,8 +28,8 @@ Tests live in `test-<module>.c` / `test-<module>.h` pairs. `test.c` contains `ma
 
 - **C99** (`-std=c99`). No C11/C17 features.
 - Include guard: `MHTTP_<MODULE>_H`
-- Types: `HttpXxx` (e.g. `HttpBuffer`, `HttpSlice`, `HttpRequest`)
-- Functions: `http_<module>_<action>` (e.g. `http_buffer_concat`, `http_request_parse`)
+- Types: `HttpXxx` (e.g. `HttpReadBuf`, `HttpWriteBuf`, `HttpSlice`, `HttpRequest`)
+- Functions: `http_<module>_<action>` (e.g. `http_readbuf_feed`, `http_request_parse`)
 - Enum values: `HTTP_<UPPER>` (e.g. `HTTP_OK`, `HTTP_INVALID_REQUEST`)
 - Public API in `.h`, static helpers in `.c`.
 - Allocate with `calloc`, free with `free`. Check allocation results.
@@ -43,7 +43,8 @@ Single-header HTTP parsing library — no external dependencies (libc only).
 
 | File | Purpose |
 |------|---------|
-| `buffer.c/h` | Fixed-size ring buffer for incremental data feeding |
+| `readbuf.c/h` | Fixed-size ring buffer for incremental data feeding (request parsing) |
+| `writebuf.c/h` | Linear append-only buffer for response serialization |
 | `slice.c/h` | String view with `begin`/`end` pointers; most functions inline in header |
 | `request.c/h` | Streaming HTTP request parser (method, URI, version, headers) |
 | `response.c/h` | HTTP response builder (status code, reason phrase, headers, body) |
@@ -51,9 +52,9 @@ Single-header HTTP parsing library — no external dependencies (libc only).
 
 ## Important constraints
 
-- `http_buffer_new(0)` returns **NULL** — zero-size buffers are rejected.
-- `http_buffer_concat` may write fewer bytes than the input string length if the buffer is full. Always check the return value.
-- HTTP parsing is **incremental**: feed chunks via `http_buffer_concat`, call `http_request_parse` after each chunk, handle `HTTP_NEED_MORE_INPUT` to request more data.
+- `http_readbuf_new(0)` returns **NULL** — zero-size buffers are rejected.
+- `http_readbuf_feed` may write fewer bytes than the input string length if the buffer is full. Always check the return value.
+- HTTP parsing is **incremental**: feed chunks via `http_readbuf_feed`, call `http_request_parse` after each chunk, handle `HTTP_NEED_MORE_INPUT` to request more data.
 - Header count is **cumulative** across multiple `http_request_parse` calls and must not exceed 100.
 - Max URI length: 255 chars. Max header name/value length: 255 chars each.
 - Line endings must be `\r\n`; bare `\n` is rejected.
@@ -67,4 +68,4 @@ Single-header HTTP parsing library — no external dependencies (libc only).
 - `http_response_set_body` auto-sets the `Content-Length` header via `set_header`, so it may fail if allocation is exhausted.
 - `http_response_set_body(NULL)` is valid — clears the body and sets `body_length` to 0.
 - `http_response_set_status` looks up the reason phrase from a static table; unknown status codes get `"Unknown"`.
-- `http_response_write` serializes into the buffer via sequential `http_buffer_concat` calls. If the buffer fills up mid-write, the response is truncated.
+- `http_response_write` serializes into the buffer via sequential `http_writebuf_write` calls. If the buffer fills up mid-write, it returns `HTTP_INTERNAL_ERROR`.

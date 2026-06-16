@@ -129,90 +129,99 @@ static void test_response_set_body_null(void)
 static void test_response_write_minimal(void)
 {
     HttpResponse *response = http_response_new();
-    HttpBuffer *buffer = http_buffer_new(128);
-    HttpSlice line;
+    HttpWriteBuf *buffer = http_writebuf_new(128);
 
-    http_response_write(response, buffer);
+    HttpResult ret = http_response_write(response, buffer);
+    const char *expected = "HTTP/1.1 200 OK\r\n\r\n";
 
-    line = http_buffer_next_line(buffer);
-    assert(slice_eq(&line, "HTTP/1.1 200 OK\r\n"));
-
-    line = http_buffer_next_line(buffer);
-    assert(slice_eq(&line, "\r\n"));
+    assert(ret == HTTP_OK);
+    assert(buffer->len == strlen(expected));
+    assert(memcmp(buffer->data, expected, buffer->len) == 0);
 
     http_response_free(response);
-    http_buffer_free(buffer);
+    http_writebuf_free(buffer);
 }
 
 static void test_response_write_with_headers(void)
 {
     HttpResponse *response = http_response_new();
-    HttpBuffer *buffer = http_buffer_new(256);
-    HttpSlice line;
+    HttpWriteBuf *buffer = http_writebuf_new(256);
 
     http_response_set_status(response, 404);
     assert(http_response_set_header(response, "Content-Type", "text/plain") == HTTP_OK);
 
-    http_response_write(response, buffer);
+    HttpResult ret = http_response_write(response, buffer);
+    const char *expected =
+        "HTTP/1.1 404 Not Found\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n";
 
-    line = http_buffer_next_line(buffer);
-    assert(slice_eq(&line, "HTTP/1.1 404 Not Found\r\n"));
-
-    line = http_buffer_next_line(buffer);
-    assert(slice_eq(&line, "Content-Type: text/plain\r\n"));
-
-    line = http_buffer_next_line(buffer);
-    assert(slice_eq(&line, "\r\n"));
-
-    line = http_buffer_next_line(buffer);
-    assert(slice_empty(&line));
+    assert(ret == HTTP_OK);
+    assert(buffer->len == strlen(expected));
+    assert(memcmp(buffer->data, expected, buffer->len) == 0);
 
     http_response_free(response);
-    http_buffer_free(buffer);
+    http_writebuf_free(buffer);
 }
 
 static void test_response_write_with_body(void)
 {
     HttpResponse *response = http_response_new();
-    HttpBuffer *buffer = http_buffer_new(256);
-    HttpSlice line;
+    HttpWriteBuf *buffer = http_writebuf_new(256);
 
     assert(http_response_set_header(response, "Content-Type", "application/json") == HTTP_OK);
     assert(http_response_set_body(response, "{\"ok\":true}") == HTTP_OK);
 
-    http_response_write(response, buffer);
+    HttpResult ret = http_response_write(response, buffer);
+    const char *expected =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Length: 11\r\n"
+        "Content-Type: application/json\r\n"
+        "\r\n"
+        "{\"ok\":true}";
 
-    line = http_buffer_next_line(buffer);
-    assert(slice_eq(&line, "HTTP/1.1 200 OK\r\n"));
-
-    line = http_buffer_next_line(buffer);
-    assert(slice_eq(&line, "Content-Length: 11\r\n"));
-
-    line = http_buffer_next_line(buffer);
-    assert(slice_eq(&line, "Content-Type: application/json\r\n"));
-
-    line = http_buffer_next_line(buffer);
-    assert(slice_eq(&line, "\r\n"));
-
-    line = http_buffer_next_line(buffer);
-    assert(slice_empty(&line));
+    assert(ret == HTTP_OK);
+    assert(buffer->len == strlen(expected));
+    assert(memcmp(buffer->data, expected, buffer->len) == 0);
 
     http_response_free(response);
-    http_buffer_free(buffer);
+    http_writebuf_free(buffer);
 }
 
 static void test_response_write_partial(void)
 {
     HttpResponse *response = http_response_new();
-    HttpBuffer *buffer = http_buffer_new(32);
+    HttpWriteBuf *buffer = http_writebuf_new(32);
 
     assert(http_response_set_body(response, "hello world") == HTTP_OK);
-    http_response_write(response, buffer);
 
-    assert(buffer->end > buffer->pos);
+    HttpResult ret = http_response_write(response, buffer);
+
+    assert(ret == HTTP_INTERNAL_ERROR);
 
     http_response_free(response);
-    http_buffer_free(buffer);
+    http_writebuf_free(buffer);
+}
+
+static void test_response_write_no_body(void)
+{
+    HttpResponse *response = http_response_new();
+    HttpWriteBuf *buffer = http_writebuf_new(128);
+
+    assert(http_response_set_header(response, "Server", "mhttp") == HTTP_OK);
+
+    HttpResult ret = http_response_write(response, buffer);
+    const char *expected =
+        "HTTP/1.1 200 OK\r\n"
+        "Server: mhttp\r\n"
+        "\r\n";
+
+    assert(ret == HTTP_OK);
+    assert(buffer->len == strlen(expected));
+    assert(memcmp(buffer->data, expected, buffer->len) == 0);
+
+    http_response_free(response);
+    http_writebuf_free(buffer);
 }
 
 void test_response(void)
@@ -230,4 +239,5 @@ void test_response(void)
     test_response_write_with_headers();
     test_response_write_with_body();
     test_response_write_partial();
+    test_response_write_no_body();
 }

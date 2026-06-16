@@ -1,15 +1,15 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "buffer.h"
+#include "readbuf.h"
 
-HttpBuffer *http_buffer_new(size_t size)
+HttpReadBuf *http_readbuf_new(size_t size)
 {
     if (size == 0) {
         return NULL;
     }
 
-    HttpBuffer *buffer = calloc(1, sizeof(*buffer) + size);
+    HttpReadBuf *buffer = calloc(1, sizeof(*buffer) + size);
 
     if (buffer) {
         buffer->size = size;
@@ -20,18 +20,18 @@ HttpBuffer *http_buffer_new(size_t size)
     return buffer;
 }
 
-void http_buffer_free(HttpBuffer *buffer)
+void http_readbuf_free(HttpReadBuf *buffer)
 {
     free(buffer);
 }
 
-void http_buffer_reset(HttpBuffer *buffer)
+void http_readbuf_reset(HttpReadBuf *buffer)
 {
     buffer->pos = buffer->buf;
     buffer->end = buffer->buf;
 }
 
-size_t http_buffer_concat(HttpBuffer *buffer, const char *str)
+size_t http_readbuf_feed(HttpReadBuf *buffer, const char *str)
 {
     size_t remaining = buffer->end - buffer->pos;
     size_t available = buffer->size - remaining;
@@ -42,20 +42,20 @@ size_t http_buffer_concat(HttpBuffer *buffer, const char *str)
 
     memmove(buffer->buf, buffer->pos, remaining);
 
-    size_t len = strlen(str);
-    if (len > available) {
-        len = available;
+    size_t to_read = strlen(str);
+    if (to_read > available) {
+        to_read = available;
     }
 
-    memcpy(buffer->buf + remaining, str, len);
+    memcpy(buffer->buf + remaining, str, to_read);
 
     buffer->pos = buffer->buf;
-    buffer->end = buffer->buf + remaining + len;
+    buffer->end = buffer->buf + remaining + to_read;
 
-    return len;
+    return to_read;
 }
 
-HttpSlice http_buffer_next_line(HttpBuffer *buffer)
+HttpSlice http_readbuf_next_line(HttpReadBuf *buffer)
 {
     HttpSlice line = { 0 };
 

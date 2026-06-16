@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #include "http.h"
-#include "buffer.h"
+#include "writebuf.h"
 
 typedef struct HttpResponse {
     int status_code;
@@ -24,6 +24,6 @@ HttpResult http_response_set_header(HttpResponse *response, const char *name, co
 
 HttpResult http_response_set_body(HttpResponse *response, const char *body);
 
-size_t http_response_write(HttpResponse *response, HttpBuffer *buffer);
+HttpResult http_response_write(HttpResponse *response, HttpWriteBuf *buffer);
 
 #endif // MHTTP_RESPONSE_H

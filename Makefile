@@ -14,14 +14,16 @@ else
 CFLAGS += -O2
 endif
 
-OBJS  = buffer.o
+OBJS  = readbuf.o
 OBJS += request.o
 OBJS += response.o
 OBJS += slice.o
+OBJS += writebuf.o
 OBJS += test.o
-OBJS += test-buffer.o
+OBJS += test-readbuf.o
 OBJS += test-request.o
 OBJS += test-response.o
+OBJS += test-writebuf.o
 
 all: test
 
