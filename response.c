@@ -7,11 +7,11 @@
 HttpResponse *http_response_new(void)
 {
     HttpResponse *response = calloc(1, sizeof(*response));
-
-    if (response) {
-        http_response_set_status(response, HTTP_STATUS_OK);
+    if (!response) {
+        return NULL;
     }
 
+    http_response_set_status(response, HTTP_STATUS_OK);
     return response;
 }
 
