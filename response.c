@@ -84,6 +84,8 @@ HttpResult http_response_set_header(HttpResponse *response, const char *name, co
 
 HttpResult http_response_set_body(HttpResponse *response, const char *body)
 {
+    HttpResult ret = HTTP_OK;
+
     free(response->body);
     response->body = NULL;
     response->body_length = 0;
@@ -100,17 +102,13 @@ HttpResult http_response_set_body(HttpResponse *response, const char *body)
 
         if (response->body_length > 0) {
             char cl[32];
-            HttpResult result;
 
             snprintf(cl, sizeof(cl), "%zu", response->body_length);
-            result = http_response_set_header(response, "Content-Length", cl);
-            if (result != HTTP_OK) {
-                return result;
-            }
+            ret = http_response_set_header(response, "Content-Length", cl);
         }
     }
 
-    return HTTP_OK;
+    return ret;
 }
 
 size_t http_response_write(HttpResponse *response, HttpBuffer *buffer)
