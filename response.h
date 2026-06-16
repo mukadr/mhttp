@@ -1,6 +1,8 @@
 #ifndef MHTTP_RESPONSE_H
 #define MHTTP_RESPONSE_H
 
+#include <stdlib.h>
+
 #include "http.h"
 #include "buffer.h"
 
@@ -9,7 +11,7 @@ typedef struct HttpResponse {
     const char *reason;
     HttpHeader *headers;
     char *body;
-    int body_length;
+    size_t body_length;
 } HttpResponse;
 
 HttpResponse *http_response_new(void);

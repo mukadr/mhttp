@@ -96,13 +96,13 @@ HttpResult http_response_set_body(HttpResponse *response, const char *body)
             return HTTP_INTERNAL_ERROR;
         }
         memcpy(response->body, body, len + 1);
-        response->body_length = (int)len;
+        response->body_length = len;
 
         if (response->body_length > 0) {
             char cl[32];
             HttpResult result;
 
-            snprintf(cl, sizeof(cl), "%d", response->body_length);
+            snprintf(cl, sizeof(cl), "%zu", response->body_length);
             result = http_response_set_header(response, "Content-Length", cl);
             if (result != HTTP_OK) {
                 return result;
