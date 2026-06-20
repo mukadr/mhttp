@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "rb.h"
+#include "rbuf.h"
 #include "slice.h"
 
 static void test_zero_size_rbuf(void)
@@ -111,11 +111,11 @@ static void test_rbuf3(void)
 	size_t ret;
 
 	ret = mhttp_rbuf_feed(
-	    rb,
-	    "GET /index.html HTTP/1.0\r\n"
-	    "Host: www.example.com\r\n"
-	    "User-Agent: TestAgent/1.0\r\n"
-	    "\r\n");
+		rb,
+		"GET /index.html HTTP/1.0\r\n"
+		"Host: www.example.com\r\n"
+		"User-Agent: TestAgent/1.0\r\n"
+		"\r\n");
 
 	assert(ret == 78);
 	assert(rb->pos == rb->buf);
@@ -146,9 +146,9 @@ static void test_rbuf4(void)
 	size_t ret;
 
 	ret = mhttp_rbuf_feed(
-	    rb,
-	    "GET /index.html HTTP/1.0\r\n"
-	    "Host: www");
+		rb,
+		"GET /index.html HTTP/1.0\r\n"
+		"Host: www");
 
 	assert(ret == 35);
 	assert(rb->pos == rb->buf);
@@ -161,10 +161,10 @@ static void test_rbuf4(void)
 	assert(mhttp_slice_empty(&line));
 
 	ret = mhttp_rbuf_feed(
-	    rb,
-	    ".example.com\r\n"
-	    "User-Agent: TestAgent/1.0\r\n"
-	    "\r\n");
+		rb,
+		".example.com\r\n"
+		"User-Agent: TestAgent/1.0\r\n"
+		"\r\n");
 
 	assert(ret == 43);
 	assert(rb->pos == rb->buf);

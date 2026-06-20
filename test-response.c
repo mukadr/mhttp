@@ -1,243 +1,251 @@
 #include <assert.h>
 #include <string.h>
 
-#include "response.h"
 #include "http.h"
-
+#include "response.h"
 #include "test-response.h"
 
 static void test_response_new_and_free(void)
 {
-    HttpResponse *response = http_response_new();
+	struct mhttp_response *rsp = mhttp_response_new();
 
-    assert(response);
-    assert(response->status_code == 200);
-    assert(!strcmp(response->reason, "OK"));
+	assert(rsp);
+	assert(rsp->status_code == 200);
+	assert(!strcmp(rsp->reason, "OK"));
 
-    http_response_free(response);
+	mhttp_response_free(rsp);
 }
 
 static void test_response_free_null(void)
 {
-    http_response_free(NULL);
+	mhttp_response_free(NULL);
 }
 
 static void test_response_set_status_known(void)
 {
-    HttpResponse *response = http_response_new();
+	struct mhttp_response *rsp = mhttp_response_new();
 
-    http_response_set_status(response, 404);
-    assert(response->status_code == 404);
-    assert(!strcmp(response->reason, "Not Found"));
+	mhttp_response_set_status(rsp, 404);
+	assert(rsp->status_code == 404);
+	assert(!strcmp(rsp->reason, "Not Found"));
 
-    http_response_set_status(response, 500);
-    assert(response->status_code == 500);
-    assert(!strcmp(response->reason, "Internal Server Error"));
+	mhttp_response_set_status(rsp, 500);
+	assert(rsp->status_code == 500);
+	assert(!strcmp(rsp->reason, "Internal Server Error"));
 
-    http_response_set_status(response, 400);
-    assert(response->status_code == 400);
-    assert(!strcmp(response->reason, "Bad Request"));
+	mhttp_response_set_status(rsp, 400);
+	assert(rsp->status_code == 400);
+	assert(!strcmp(rsp->reason, "Bad Request"));
 
-    http_response_set_status(response, 200);
-    assert(response->status_code == 200);
-    assert(!strcmp(response->reason, "OK"));
+	mhttp_response_set_status(rsp, 200);
+	assert(rsp->status_code == 200);
+	assert(!strcmp(rsp->reason, "OK"));
 
-    http_response_free(response);
+	mhttp_response_free(rsp);
 }
 
 static void test_response_set_status_unknown(void)
 {
-    HttpResponse *response = http_response_new();
+	struct mhttp_response *rsp = mhttp_response_new();
 
-    http_response_set_status(response, 999);
-    assert(response->status_code == 999);
-    assert(!strcmp(response->reason, "Unknown"));
+	mhttp_response_set_status(rsp, 999);
+	assert(rsp->status_code == 999);
+	assert(!strcmp(rsp->reason, "Unknown"));
 
-    http_response_free(response);
+	mhttp_response_free(rsp);
 }
 
 static void test_response_set_header(void)
 {
-    HttpResponse *response = http_response_new();
+	struct mhttp_response *rsp = mhttp_response_new();
 
-    assert(http_response_set_header(response, "Content-Type", "text/html") == HTTP_OK);
+	assert(mhttp_response_set_header(rsp, "Content-Type", "text/html") == MHTTP_OK);
 
-    assert(response->headers);
-    assert(!strcmp(response->headers->name, "Content-Type"));
-    assert(!strcmp(response->headers->value, "text/html"));
-    assert(response->headers->next == NULL);
+	assert(rsp->headers);
+	assert(!strcmp(rsp->headers->name, "Content-Type"));
+	assert(!strcmp(rsp->headers->value, "text/html"));
+	assert(rsp->headers->next == NULL);
 
-    http_response_free(response);
+	mhttp_response_free(rsp);
 }
 
 static void test_response_set_header_multiple(void)
 {
-    HttpResponse *response = http_response_new();
+	struct mhttp_response *rsp = mhttp_response_new();
 
-    assert(http_response_set_header(response, "Content-Type", "text/html") == HTTP_OK);
-    assert(http_response_set_header(response, "Server", "mhttp") == HTTP_OK);
+	assert(mhttp_response_set_header(rsp, "Content-Type", "text/html") == MHTTP_OK);
+	assert(mhttp_response_set_header(rsp, "Server", "mhttp") == MHTTP_OK);
 
-    assert(response->headers);
-    assert(!strcmp(response->headers->name, "Server"));
-    assert(!strcmp(response->headers->value, "mhttp"));
-    assert(response->headers->next);
-    assert(!strcmp(response->headers->next->name, "Content-Type"));
-    assert(!strcmp(response->headers->next->value, "text/html"));
-    assert(response->headers->next->next == NULL);
+	assert(rsp->headers);
+	assert(!strcmp(rsp->headers->name, "Server"));
+	assert(!strcmp(rsp->headers->value, "mhttp"));
+	assert(rsp->headers->next);
+	assert(!strcmp(rsp->headers->next->name, "Content-Type"));
+	assert(!strcmp(rsp->headers->next->value, "text/html"));
+	assert(rsp->headers->next->next == NULL);
 
-    http_response_free(response);
+	mhttp_response_free(rsp);
 }
 
 static void test_response_set_body(void)
 {
-    HttpResponse *response = http_response_new();
+	struct mhttp_response *rsp = mhttp_response_new();
 
-    assert(http_response_set_body(response, "hello world") == HTTP_OK);
+	assert(mhttp_response_set_body(rsp, "hello world") == MHTTP_OK);
 
-    assert(response->body);
-    assert(!strcmp(response->body, "hello world"));
-    assert(response->body_length == 11);
+	assert(rsp->body);
+	assert(!strcmp(rsp->body, "hello world"));
+	assert(rsp->body_length == 11);
 
-    http_response_free(response);
+	mhttp_response_free(rsp);
 }
 
 static void test_response_set_body_replaces(void)
 {
-    HttpResponse *response = http_response_new();
+	struct mhttp_response *rsp = mhttp_response_new();
 
-    assert(http_response_set_body(response, "first") == HTTP_OK);
-    assert(http_response_set_body(response, "second") == HTTP_OK);
+	assert(mhttp_response_set_body(rsp, "first") == MHTTP_OK);
+	assert(mhttp_response_set_body(rsp, "second") == MHTTP_OK);
 
-    assert(!strcmp(response->body, "second"));
-    assert(response->body_length == 6);
+	assert(!strcmp(rsp->body, "second"));
+	assert(rsp->body_length == 6);
 
-    http_response_free(response);
+	mhttp_response_free(rsp);
 }
 
 static void test_response_set_body_null(void)
 {
-    HttpResponse *response = http_response_new();
+	struct mhttp_response *rsp = mhttp_response_new();
 
-    assert(http_response_set_body(response, NULL) == HTTP_OK);
+	assert(mhttp_response_set_body(rsp, NULL) == MHTTP_OK);
 
-    assert(response->body == NULL);
-    assert(response->body_length == 0);
+	assert(rsp->body == NULL);
+	assert(rsp->body_length == 0);
 
-    http_response_free(response);
+	mhttp_response_free(rsp);
 }
 
 static void test_response_write_minimal(void)
 {
-    HttpResponse *response = http_response_new();
-    HttpWriteBuf *buffer = http_writebuf_new(128);
+	struct mhttp_response *rsp = mhttp_response_new();
+	struct mhttp_wbuf *wbuf = mhttp_wbuf_new(128);
+	enum mhttp_result ret;
+	const char *expected;
 
-    HttpResult ret = http_response_write(response, buffer);
-    const char *expected = "HTTP/1.1 200 OK\r\n\r\n";
+	ret = mhttp_response_write(rsp, wbuf);
+	expected = "HTTP/1.1 200 OK\r\n\r\n";
 
-    assert(ret == HTTP_OK);
-    assert(buffer->len == strlen(expected));
-    assert(memcmp(buffer->data, expected, buffer->len) == 0);
+	assert(ret == MHTTP_OK);
+	assert(wbuf->len == strlen(expected));
+	assert(memcmp(wbuf->data, expected, wbuf->len) == 0);
 
-    http_response_free(response);
-    http_writebuf_free(buffer);
+	mhttp_response_free(rsp);
+	mhttp_wbuf_free(wbuf);
 }
 
 static void test_response_write_with_headers(void)
 {
-    HttpResponse *response = http_response_new();
-    HttpWriteBuf *buffer = http_writebuf_new(256);
+	struct mhttp_response *rsp = mhttp_response_new();
+	struct mhttp_wbuf *wbuf = mhttp_wbuf_new(256);
+	enum mhttp_result ret;
+	const char *expected;
 
-    http_response_set_status(response, 404);
-    assert(http_response_set_header(response, "Content-Type", "text/plain") == HTTP_OK);
+	mhttp_response_set_status(rsp, 404);
+	assert(mhttp_response_set_header(rsp, "Content-Type", "text/plain") == MHTTP_OK);
 
-    HttpResult ret = http_response_write(response, buffer);
-    const char *expected =
-        "HTTP/1.1 404 Not Found\r\n"
-        "Content-Type: text/plain\r\n"
-        "\r\n";
+	ret = mhttp_response_write(rsp, wbuf);
+	expected =
+		"HTTP/1.1 404 Not Found\r\n"
+		"Content-Type: text/plain\r\n"
+		"\r\n";
 
-    assert(ret == HTTP_OK);
-    assert(buffer->len == strlen(expected));
-    assert(memcmp(buffer->data, expected, buffer->len) == 0);
+	assert(ret == MHTTP_OK);
+	assert(wbuf->len == strlen(expected));
+	assert(memcmp(wbuf->data, expected, wbuf->len) == 0);
 
-    http_response_free(response);
-    http_writebuf_free(buffer);
+	mhttp_response_free(rsp);
+	mhttp_wbuf_free(wbuf);
 }
 
 static void test_response_write_with_body(void)
 {
-    HttpResponse *response = http_response_new();
-    HttpWriteBuf *buffer = http_writebuf_new(256);
+	struct mhttp_response *rsp = mhttp_response_new();
+	struct mhttp_wbuf *wbuf = mhttp_wbuf_new(256);
+	enum mhttp_result ret;
+	const char *expected;
 
-    assert(http_response_set_header(response, "Content-Type", "application/json") == HTTP_OK);
-    assert(http_response_set_body(response, "{\"ok\":true}") == HTTP_OK);
+	assert(mhttp_response_set_header(rsp, "Content-Type", "application/json") == MHTTP_OK);
+	assert(mhttp_response_set_body(rsp, "{\"ok\":true}") == MHTTP_OK);
 
-    HttpResult ret = http_response_write(response, buffer);
-    const char *expected =
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Length: 11\r\n"
-        "Content-Type: application/json\r\n"
-        "\r\n"
-        "{\"ok\":true}";
+	ret = mhttp_response_write(rsp, wbuf);
+	expected =
+		"HTTP/1.1 200 OK\r\n"
+		"Content-Length: 11\r\n"
+		"Content-Type: application/json\r\n"
+		"\r\n"
+		"{\"ok\":true}";
 
-    assert(ret == HTTP_OK);
-    assert(buffer->len == strlen(expected));
-    assert(memcmp(buffer->data, expected, buffer->len) == 0);
+	assert(ret == MHTTP_OK);
+	assert(wbuf->len == strlen(expected));
+	assert(memcmp(wbuf->data, expected, wbuf->len) == 0);
 
-    http_response_free(response);
-    http_writebuf_free(buffer);
+	mhttp_response_free(rsp);
+	mhttp_wbuf_free(wbuf);
 }
 
 static void test_response_write_partial(void)
 {
-    HttpResponse *response = http_response_new();
-    HttpWriteBuf *buffer = http_writebuf_new(32);
+	struct mhttp_response *rsp = mhttp_response_new();
+	struct mhttp_wbuf *wbuf = mhttp_wbuf_new(32);
+	enum mhttp_result ret;
 
-    assert(http_response_set_body(response, "hello world") == HTTP_OK);
+	assert(mhttp_response_set_body(rsp, "hello world") == MHTTP_OK);
 
-    HttpResult ret = http_response_write(response, buffer);
+	ret = mhttp_response_write(rsp, wbuf);
 
-    assert(ret == HTTP_INTERNAL_ERROR);
+	assert(ret == MHTTP_ERROR);
 
-    http_response_free(response);
-    http_writebuf_free(buffer);
+	mhttp_response_free(rsp);
+	mhttp_wbuf_free(wbuf);
 }
 
 static void test_response_write_no_body(void)
 {
-    HttpResponse *response = http_response_new();
-    HttpWriteBuf *buffer = http_writebuf_new(128);
+	struct mhttp_response *rsp = mhttp_response_new();
+	struct mhttp_wbuf *wbuf = mhttp_wbuf_new(128);
+	enum mhttp_result ret;
+	const char *expected;
 
-    assert(http_response_set_header(response, "Server", "mhttp") == HTTP_OK);
+	assert(mhttp_response_set_header(rsp, "Server", "mhttp") == MHTTP_OK);
 
-    HttpResult ret = http_response_write(response, buffer);
-    const char *expected =
-        "HTTP/1.1 200 OK\r\n"
-        "Server: mhttp\r\n"
-        "\r\n";
+	ret = mhttp_response_write(rsp, wbuf);
+	expected =
+		"HTTP/1.1 200 OK\r\n"
+		"Server: mhttp\r\n"
+		"\r\n";
 
-    assert(ret == HTTP_OK);
-    assert(buffer->len == strlen(expected));
-    assert(memcmp(buffer->data, expected, buffer->len) == 0);
+	assert(ret == MHTTP_OK);
+	assert(wbuf->len == strlen(expected));
+	assert(memcmp(wbuf->data, expected, wbuf->len) == 0);
 
-    http_response_free(response);
-    http_writebuf_free(buffer);
+	mhttp_response_free(rsp);
+	mhttp_wbuf_free(wbuf);
 }
 
 void test_response(void)
 {
-    test_response_new_and_free();
-    test_response_free_null();
-    test_response_set_status_known();
-    test_response_set_status_unknown();
-    test_response_set_header();
-    test_response_set_header_multiple();
-    test_response_set_body();
-    test_response_set_body_replaces();
-    test_response_set_body_null();
-    test_response_write_minimal();
-    test_response_write_with_headers();
-    test_response_write_with_body();
-    test_response_write_partial();
-    test_response_write_no_body();
+	test_response_new_and_free();
+	test_response_free_null();
+	test_response_set_status_known();
+	test_response_set_status_unknown();
+	test_response_set_header();
+	test_response_set_header_multiple();
+	test_response_set_body();
+	test_response_set_body_replaces();
+	test_response_set_body_null();
+	test_response_write_minimal();
+	test_response_write_with_headers();
+	test_response_write_with_body();
+	test_response_write_partial();
+	test_response_write_no_body();
 }

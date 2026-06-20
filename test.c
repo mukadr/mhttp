@@ -1,14 +1,14 @@
-#include "test-readbuf.h"
+#include "test-rbuf.h"
 #include "test-request.h"
 #include "test-response.h"
-#include "test-writebuf.h"
+#include "test-wbuf.h"
 
 int main()
 {
-    test_readbuf();
+    test_rbuf();
+    test_wbuf();
     test_request();
     test_response();
-    test_writebuf();
 
     return 0;
 }

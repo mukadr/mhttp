@@ -2,541 +2,422 @@
 #include <strings.h>
 #include <string.h>
 
+#include "rbuf.h"
 #include "request.h"
-#include "readbuf.h"
 
-enum {
-    CHUNK_NEED_HEADER = -1,
-    CHUNK_BODY_DONE   = -2,
-    CHUNK_NEED_CRLF   = -3,
-    CHUNK_TRAILER     = -4
-};
+#define CHUNK_NEED_HEADER (-1)
+#define CHUNK_BODY_DONE (-2)
+#define CHUNK_NEED_CRLF (-3)
+#define CHUNK_TRAILER (-4)
 
-HttpRequest *http_request_new(void)
+struct mhttp_request *mhttp_request_new(void)
 {
-    HttpRequest *request = calloc(1, sizeof(*request));
+	struct mhttp_request *req;
+       
+	req = calloc(1, sizeof(*req));
+	if (!req)
+		return NULL;
 
-    if (request) {
-        request->state = HTTP_PARSE_REQUEST_LINE;
-    }
-
-    return request;
+	req->state = MHTTP_PARSE_REQUEST_LINE;
+	return req;
 }
 
-void http_request_free(HttpRequest *request)
+void mhttp_request_free(struct mhttp_request *req)
 {
-    if (!request) {
-        return;
-    }
+	struct mhttp_header *hdr, *n;
 
-    HttpHeader *header = request->headers;
+	if (!req)
+		return;
 
-    while (header) {
-        HttpHeader *next = header->next;
-        free(header);
-        header = next;
-    }
-
-    free(request);
+	hdr = req->headers;
+	while (hdr) {
+		n = hdr->next;
+		free(hdr);
+		hdr = n;
+	}
+	free(req);
 }
 
-static HttpResult parse_uri(HttpRequest *request, HttpSlice *line)
+static enum mhttp_result parse_uri(struct mhttp_request *req, struct mhttp_slice *line)
 {
-    size_t len = 0;
-    while (true) {
-        int c = slice_peek(line);
-        if (c == '\r' || c == '\n' || c == -1) {
-            break;
-        }
+	size_t len = 0;
+	int c;
 
-        slice_skip(line);
+	for (;;) {
+		c = mhttp_slice_peek(line);
+		if (c == '\r' || c == '\n' || c == -1)
+			break;
 
-        if (c == ' ') {
-            break;
-        }
+		mhttp_slice_skip(line);
 
-        if (c == 0) {
-            return HTTP_INVALID_REQUEST;
-        }
+		if (c == ' ')
+			break;
 
-        if (len == sizeof(request->uri) - 1) {
-            return HTTP_INVALID_REQUEST;
-        }
+		if (c == 0)
+			return MHTTP_INVALID_REQUEST;
 
-        request->uri[len++] = (char)c;
-    }
+		if (len == sizeof(req->uri) - 1)
+			return MHTTP_INVALID_REQUEST;
 
-    request->uri[len] = '\0';
+		req->uri[len++] = (char)c;
+	}
+	req->uri[len] = '\0';
 
-    return len ? HTTP_OK : HTTP_INVALID_REQUEST;
+	return len ? MHTTP_OK : MHTTP_INVALID_REQUEST;
 }
 
-static HttpResult parse_http_version(HttpRequest *request, HttpSlice *line)
+static enum mhttp_result parse_http_version(struct mhttp_request *req, struct mhttp_slice *line)
 {
-    if (slice_match(line, "HTTP/")) {
-        int c = slice_peek(line);
-        if (c < '0' || c > '9') {
-            return HTTP_INVALID_REQUEST;
-        }
+	int c;
 
-        request->version = c - '0';
+	if (mhttp_slice_match(line, "HTTP/")) {
+		c = mhttp_slice_peek(line);
+		if (c < '0' || c > '9')
+			return MHTTP_INVALID_REQUEST;
 
-        c = slice_next(line);
-        if (c != '.') {
-            return HTTP_INVALID_REQUEST;
-        }
+		req->version = c - '0';
 
-        c = slice_next(line);
-        if (c < '0' || c > '9') {
-            return HTTP_INVALID_REQUEST;
-        }
+		c = mhttp_slice_next(line);
+		if (c != '.')
+			return MHTTP_INVALID_REQUEST;
 
-        request->version = request->version * 10 + c - '0';
+		c = mhttp_slice_next(line);
+		if (c < '0' || c > '9')
+			return MHTTP_INVALID_REQUEST;
 
-        slice_skip(line);
+		req->version = (req->version * 10) + (c - '0');
 
-        if (!slice_eol(line)) {
-            return HTTP_INVALID_REQUEST;
-        }
-    } else if (slice_eol(line)) {
-        // HTTP/0.9 (no version present)
-        request->version = 9;
-    } else {
-        return HTTP_INVALID_REQUEST;
-    }
+		mhttp_slice_skip(line);
+	} else if (mhttp_slice_eol(line)) {
+		// HTTP/0.9 (no version present)
+		req->version = 9;
+	}
 
-    return HTTP_OK;
+	if (!mhttp_slice_eol(line))
+		return MHTTP_INVALID_REQUEST;
+
+	return MHTTP_OK;
 }
 
-static HttpResult parse_method_get(HttpRequest *request, HttpSlice *line)
+static enum mhttp_result parse_method(struct mhttp_request *req, struct mhttp_rbuf *rb)
 {
-    request->method = HTTP_METHOD_GET;
+	struct mhttp_slice line;
+	enum mhttp_result res;
+	
+	line = mhttp_rbuf_next_line(rb);
+	if (mhttp_slice_empty(&line))
+		return MHTTP_NEED_MORE_INPUT;
 
-    HttpResult ret = parse_uri(request, line);
-    if (ret != HTTP_OK) {
-        return ret;
-    }
+	if (mhttp_slice_match(&line, "GET "))
+		req->method = MHTTP_METHOD_GET;
+	else if (mhttp_slice_match(&line, "HEAD "))
+		req->method = MHTTP_METHOD_HEAD;
+	else if (mhttp_slice_match(&line, "POST "))
+		req->method = MHTTP_METHOD_POST;
+	else if (mhttp_slice_match(&line, "PUT "))
+		req->method = MHTTP_METHOD_PUT;
+	else if (mhttp_slice_match(&line, "DELETE "))
+		req->method = MHTTP_METHOD_DELETE;
+	else if (mhttp_slice_match(&line, "OPTIONS "))
+		req->method = MHTTP_METHOD_OPTIONS;
+	else if (mhttp_slice_match(&line, "PATCH "))
+		req->method = MHTTP_METHOD_PATCH;
+	else
+		return MHTTP_INVALID_REQUEST;
 
-    return parse_http_version(request, line);
+	res = parse_uri(req, &line);
+	if (res != MHTTP_OK)
+		return res;
+
+	return parse_http_version(req, &line);
 }
 
-static HttpResult parse_method_head(HttpRequest *request, HttpSlice *line)
+static enum mhttp_result parse_header(struct mhttp_request *req, struct mhttp_slice *line, struct mhttp_header **out_hdr)
 {
-    request->method = HTTP_METHOD_HEAD;
+	struct mhttp_header *hdr;
+	int c;
+	size_t name_len, value_len;
 
-    HttpResult ret = parse_uri(request, line);
-    if (ret != HTTP_OK) {
-        return ret;
-    }
+	hdr = calloc(1, sizeof(*hdr));
+	if (!hdr)
+		return MHTTP_ERROR;
 
-    return parse_http_version(request, line);
+	name_len = 0;
+	for (;;) {
+		c = mhttp_slice_peek(line);
+		if (c == ':')
+			break;
+		if (c == '\r' || c == '\n' || c == -1 || c == 0)
+			goto invalid;
+
+		if (name_len == sizeof(hdr->name) - 1)
+			goto invalid;
+
+		hdr->name[name_len++] = (char)c;
+		mhttp_slice_skip(line);
+	}
+	if (name_len == 0)
+		goto invalid;
+
+	c = mhttp_slice_next(line);
+	if (c != ' ')
+		goto invalid;
+
+	value_len = 0;
+	for (;;) {
+		c = mhttp_slice_next(line);
+		if (c == '\r' || c == '\n' || c == -1)
+			break;
+		if (c == 0)
+			goto invalid;
+
+		if (value_len == sizeof(hdr->value) - 1)
+			goto invalid;
+
+		hdr->value[value_len++] = (char)c;
+	}
+
+	if (!mhttp_slice_eol(line))
+		goto invalid;
+
+	*out_hdr = hdr;
+	return MHTTP_OK;
+
+invalid:
+	free(hdr);
+	return MHTTP_INVALID_REQUEST;
 }
 
-static HttpResult parse_method_post(HttpRequest *request, HttpSlice *line)
+static enum mhttp_result parse_headers(struct mhttp_request *req, struct mhttp_rbuf *rb)
 {
-    request->method = HTTP_METHOD_POST;
+	struct mhttp_slice line;
+	struct mhttp_header *hdr;
+	enum mhttp_result res;
+	int count;
 
-    HttpResult ret = parse_uri(request, line);
-    if (ret != HTTP_OK) {
-        return ret;
-    }
+	count = mhttp_request_header_count(req);
 
-    return parse_http_version(request, line);
+	for (;;) {
+		hdr = NULL;
+
+		line = mhttp_rbuf_next_line(rb);
+		if (mhttp_slice_empty(&line))
+			return MHTTP_NEED_MORE_INPUT;
+
+		if (mhttp_slice_eol(&line))
+			break;
+
+		if (count >= MHTTP_MAX_HEADERS)
+			return MHTTP_INVALID_REQUEST;
+
+		res = parse_header(req, &line, &hdr);
+		if (res != MHTTP_OK)
+			return res;
+
+		hdr->next = req->headers;
+		req->headers = hdr;
+		count++;
+	}
+
+	return MHTTP_OK;
 }
 
-static HttpResult parse_method_put(HttpRequest *request, HttpSlice *line)
+enum mhttp_result mhttp_request_parse(struct mhttp_request *req, struct mhttp_rbuf *rb)
 {
-    request->method = HTTP_METHOD_PUT;
+	enum mhttp_result res;
+	const char *cl, *te;
 
-    HttpResult ret = parse_uri(request, line);
-    if (ret != HTTP_OK) {
-        return ret;
-    }
+	if (req->state == MHTTP_PARSE_REQUEST_LINE) {
+		res = parse_method(req, rb);
+		if (res != MHTTP_OK)
+			return res;
+		req->state = MHTTP_PARSE_HEADERS;
+	}
 
-    return parse_http_version(request, line);
+	if (req->state == MHTTP_PARSE_HEADERS) {
+		res = parse_headers(req, rb);
+		if (res != MHTTP_OK)
+			return res;
+		req->state = MHTTP_PARSE_DONE;
+
+		cl = mhttp_request_get_header(req, "Content-Length");
+		if (cl)
+			req->content_length = atoi(cl);
+
+		te = mhttp_request_get_header(req, "Transfer-Encoding");
+		if (te && !strcasecmp(te, "chunked")) {
+			req->body_is_chunked = true;
+			req->chunk_size = CHUNK_NEED_HEADER;
+		}
+	}
+
+	return MHTTP_OK;
 }
 
-static HttpResult parse_method_delete(HttpRequest *request, HttpSlice *line)
+int mhttp_request_content_length(const struct mhttp_request *req)
 {
-    request->method = HTTP_METHOD_DELETE;
-
-    HttpResult ret = parse_uri(request, line);
-    if (ret != HTTP_OK) {
-        return ret;
-    }
-
-    return parse_http_version(request, line);
-}
-
-static HttpResult parse_method_options(HttpRequest *request, HttpSlice *line)
-{
-    request->method = HTTP_METHOD_OPTIONS;
-
-    HttpResult ret = parse_uri(request, line);
-    if (ret != HTTP_OK) {
-        return ret;
-    }
-
-    return parse_http_version(request, line);
-}
-
-static HttpResult parse_method_patch(HttpRequest *request, HttpSlice *line)
-{
-    request->method = HTTP_METHOD_PATCH;
-
-    HttpResult ret = parse_uri(request, line);
-    if (ret != HTTP_OK) {
-        return ret;
-    }
-
-    return parse_http_version(request, line);
-}
-
-static HttpResult parse_method(HttpRequest *request, HttpReadBuf *buffer)
-{
-    HttpSlice line = http_readbuf_next_line(buffer);
-    if (slice_empty(&line)) {
-        return HTTP_NEED_MORE_INPUT;
-    }
-
-    if (slice_match(&line, "GET ")) {
-        return parse_method_get(request, &line);
-    }
-
-    if (slice_match(&line, "HEAD ")) {
-        return parse_method_head(request, &line);
-    }
-
-    if (slice_match(&line, "POST ")) {
-        return parse_method_post(request, &line);
-    }
-
-    if (slice_match(&line, "PUT ")) {
-        return parse_method_put(request, &line);
-    }
-
-    if (slice_match(&line, "DELETE ")) {
-        return parse_method_delete(request, &line);
-    }
-
-    if (slice_match(&line, "OPTIONS ")) {
-        return parse_method_options(request, &line);
-    }
-
-    if (slice_match(&line, "PATCH ")) {
-        return parse_method_patch(request, &line);
-    }
-
-    return HTTP_INVALID_REQUEST;
-}
-
-static HttpResult parse_header(HttpRequest *request, HttpSlice *line, HttpHeader **out_header)
-{
-    int c;
-
-    HttpHeader *header = calloc(1, sizeof(*header));
-    if (!header) {
-        return HTTP_INTERNAL_ERROR;
-    }
-
-    size_t name_len = 0;
-    while (true) {
-        c = slice_peek(line);
-        if (c == ':') {
-            break;
-        }
-        if (c == '\r' || c == '\n' || c == -1) {
-            goto err_bad_request;
-        }
-        if (c == 0) {
-            goto err_bad_request;
-        }
-        if (name_len == sizeof(header->name) - 1) {
-            goto err_bad_request;
-        }
-        header->name[name_len++] = (char)c;
-        slice_skip(line);
-    }
-
-    if (name_len == 0) {
-        goto err_bad_request;
-    }
-    c = slice_next(line);
-    if (c != ' ') {
-        goto err_bad_request;
-    }
-
-    size_t value_len = 0;
-    while (true) {
-        c = slice_next(line);
-        if (c == '\r' || c == '\n' || c == -1) {
-            break;
-        }
-        if (c == 0) {
-            goto err_bad_request;
-        }
-        if (value_len == sizeof(header->value) - 1) {
-            goto err_bad_request;
-        }
-        header->value[value_len++] = (char)c;
-    }
-
-    if (!slice_eol(line)) {
-        goto err_bad_request;
-    }
-
-    *out_header = header;
-
-    return HTTP_OK;
-
-err_bad_request:
-    free(header);
-    return HTTP_INVALID_REQUEST;
-}
-
-#define HTTP_MAX_HEADERS 100
-
-static HttpResult parse_headers(HttpRequest *request, HttpReadBuf *buffer)
-{
-    HttpHeader **header_ptr = &request->headers;
-    int count = http_request_header_count(request);
-
-    while (true) {
-        HttpResult ret;
-        HttpHeader *header = NULL;
-
-        HttpSlice line = http_readbuf_next_line(buffer);
-        if (slice_empty(&line)) {
-            return HTTP_NEED_MORE_INPUT;
-        }
-        if (slice_eol(&line)) {
-            break;
-        }
-        if (count >= HTTP_MAX_HEADERS) {
-            return HTTP_INVALID_REQUEST;
-        }
-        ret = parse_header(request, &line, &header);
-        if (ret != HTTP_OK) {
-            return ret;
-        }
-
-        header->next = *header_ptr;
-        *header_ptr = header;
-        count++;
-    }
-
-    return HTTP_OK;
-}
-
-HttpResult http_request_parse(HttpRequest *request, HttpReadBuf *buffer)
-{
-    if (request->state == HTTP_PARSE_REQUEST_LINE) {
-        HttpResult ret = parse_method(request, buffer);
-        if (ret != HTTP_OK) {
-            return ret;
-        }
-        request->state = HTTP_PARSE_HEADERS;
-    }
-
-    if (request->state == HTTP_PARSE_HEADERS) {
-        HttpResult ret = parse_headers(request, buffer);
-        if (ret != HTTP_OK) {
-            return ret;
-        }
-        request->state = HTTP_PARSE_DONE;
-
-        const char *cl = http_request_get_header(request, "Content-Length");
-        if (cl) {
-            request->content_length = atoi(cl);
-        }
-
-        const char *te = http_request_get_header(request, "Transfer-Encoding");
-        if (te && !strcasecmp(te, "chunked")) {
-            request->body_is_chunked = true;
-            request->chunk_size = CHUNK_NEED_HEADER;
-        }
-    }
-
-    return HTTP_OK;
-}
-
-int http_request_content_length(const HttpRequest *request)
-{
-    return request->content_length;
+	return req->content_length;
 }
 
 static int parse_hex_digit(int c)
 {
-    if (c >= '0' && c <= '9') {
-        return c - '0';
-    }
-    if (c >= 'a' && c <= 'f') {
-        return c - 'a' + 10;
-    }
-    if (c >= 'A' && c <= 'F') {
-        return c - 'A' + 10;
-    }
-    return -1;
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'a' && c <= 'f')
+		return c - 'a' + 10;
+	if (c >= 'A' && c <= 'F')
+		return c - 'A' + 10;
+	return -1;
 }
 
-static int parse_chunk_size(HttpSlice *line)
+static int parse_chunk_size(struct mhttp_slice *line)
 {
-    int size = 0;
+	int size = 0;
+	int c, d;
 
-    while (true) {
-        int c = slice_peek(line);
-        int d = parse_hex_digit(c);
-        if (d < 0) {
-            break;
-        }
-        slice_skip(line);
-        size = size * 16 + d;
-    }
+	for (;;) {
+		c = mhttp_slice_peek(line);
+		d = parse_hex_digit(c);
+		if (d < 0)
+			break;
+		mhttp_slice_skip(line);
+		size = (size * 16) + d;
+	}
 
-    return size;
+	return size;
 }
 
-static size_t http_request_read_chunked_body(HttpRequest *request, HttpReadBuf *buffer, void *dst, size_t len)
+static size_t mhttp_request_read_chunked_body(struct mhttp_request *req, struct mhttp_rbuf *rb, void *dst, size_t len)
 {
-    if (request->body_done) {
-        return 0;
-    }
+	struct mhttp_slice line;
+	size_t total = 0, available, to_copy;
+	int size;
+	char *out = dst;
 
-    size_t total = 0;
-    char *out = dst;
+	if (req->body_done)
+		return 0;
 
-    while (total < len) {
-        if (request->chunk_size == CHUNK_BODY_DONE) {
-            request->body_done = true;
-            break;
-        }
+	while (total < len) {
+		if (req->chunk_size == CHUNK_BODY_DONE) {
+			req->body_done = true;
+			break;
+		}
 
-        if (request->chunk_size == CHUNK_NEED_HEADER) {
-            HttpSlice line = http_readbuf_next_line(buffer);
-            if (slice_empty(&line)) {
-                break;
-            }
-            int size = parse_chunk_size(&line);
-            if (size == 0) {
-                request->chunk_size = CHUNK_TRAILER;
-            } else {
-                request->chunk_size = size;
-            }
-            continue;
-        }
+		if (req->chunk_size == CHUNK_NEED_HEADER) {
+			line = mhttp_rbuf_next_line(rb);
+			if (mhttp_slice_empty(&line))
+				break;
 
-        if (request->chunk_size == CHUNK_TRAILER) {
-            HttpSlice line = http_readbuf_next_line(buffer);
-            if (slice_empty(&line)) {
-                break;
-            }
-            if (slice_eol(&line)) {
-                request->chunk_size = CHUNK_BODY_DONE;
-            }
-            continue;
-        }
+			size = parse_chunk_size(&line);
+			if (size == 0)
+				req->chunk_size = CHUNK_TRAILER;
+			else
+				req->chunk_size = size;
 
-        if (request->chunk_size == CHUNK_NEED_CRLF) {
-            HttpSlice line = http_readbuf_next_line(buffer);
-            if (slice_empty(&line)) {
-                break;
-            }
-            request->chunk_size = CHUNK_NEED_HEADER;
-            continue;
-        }
+			continue;
+		}
 
-        if (request->chunk_size > 0) {
-            size_t available = buffer->end - buffer->pos;
-            if (available == 0) {
-                break;
-            }
-            size_t to_copy = len - total;
-            if (to_copy > available) {
-                to_copy = available;
-            }
-            if (to_copy > (size_t)request->chunk_size) {
-                to_copy = request->chunk_size;
-            }
+		if (req->chunk_size == CHUNK_TRAILER) {
+			line = mhttp_rbuf_next_line(rb);
+			if (mhttp_slice_empty(&line))
+				break;
 
-            memcpy(out + total, buffer->pos, to_copy);
-            buffer->pos += to_copy;
-            request->body_received += to_copy;
-            request->chunk_size -= to_copy;
-            total += to_copy;
+			if (mhttp_slice_eol(&line))
+				req->chunk_size = CHUNK_BODY_DONE;
 
-            if (request->chunk_size == 0) {
-                request->chunk_size = CHUNK_NEED_CRLF;
-            }
-            if (total == len) {
-                break;
-            }
-            continue;
-        }
-    }
+			continue;
+		}
 
-    return total;
+		if (req->chunk_size == CHUNK_NEED_CRLF) {
+			line = mhttp_rbuf_next_line(rb);
+			if (mhttp_slice_empty(&line))
+				break;
+
+			req->chunk_size = CHUNK_NEED_HEADER;
+			continue;
+		}
+
+		if (req->chunk_size > 0) {
+			available = rb->end - rb->pos;
+			if (available == 0)
+				break;
+
+			to_copy = len - total;
+			if (to_copy > available)
+				to_copy = available;
+			if (to_copy > (size_t)req->chunk_size)
+				to_copy = req->chunk_size;
+
+			memcpy(out + total, rb->pos, to_copy);
+			rb->pos += to_copy;
+			req->body_received += to_copy;
+			req->chunk_size -= to_copy;
+			total += to_copy;
+
+			if (req->chunk_size == 0)
+				req->chunk_size = CHUNK_NEED_CRLF;
+			if (total == len)
+				break;
+			continue;
+		}
+	}
+
+	return total;
 }
 
-static size_t http_request_read_body_with_content_length(HttpRequest *request, HttpReadBuf *buffer, void *dst, size_t len)
+static size_t mhttp_request_read_body_with_content_length(struct mhttp_request *req, struct mhttp_rbuf *rb, void *dst, size_t len)
 {
-    if (request->content_length == 0) {
-        return 0;
-    }
+	size_t available, to_copy;
+	int remaining;
 
-    int remaining = request->content_length - request->body_received;
-    if (remaining <= 0) {
-        return 0;
-    }
+	if (req->content_length == 0)
+		return 0;
 
-    size_t available = buffer->end - buffer->pos;
-    if (available == 0) {
-        return 0;
-    }
+	remaining = req->content_length - req->body_received;
+	if (remaining <= 0)
+		return 0;
 
-    size_t to_copy = len < available ? len : available;
-    if (to_copy > (size_t)remaining) {
-        to_copy = remaining;
-    }
+	available = rb->end - rb->pos;
+	if (available == 0)
+		return 0;
 
-    memcpy(dst, buffer->pos, to_copy);
-    buffer->pos += to_copy;
-    request->body_received += to_copy;
+	to_copy = len < available ? len : available;
+	if (to_copy > (size_t)remaining)
+		to_copy = remaining;
 
-    return to_copy;
+	memcpy(dst, rb->pos, to_copy);
+	rb->pos += to_copy;
+	req->body_received += to_copy;
+
+	return to_copy;
 }
 
-size_t http_request_read_body(HttpRequest *request, HttpReadBuf *buffer, void *dst, size_t len)
+size_t mhttp_request_read_body(struct mhttp_request *req, struct mhttp_rbuf *rb, void *dst, size_t len)
 {
-    if (request->body_is_chunked) {
-        return http_request_read_chunked_body(request, buffer, dst, len);
-    }
+	if (req->body_is_chunked)
+		return mhttp_request_read_chunked_body(req, rb, dst, len);
 
-    return http_request_read_body_with_content_length(request, buffer, dst, len);
+	return mhttp_request_read_body_with_content_length(req, rb, dst, len);
 }
 
-int http_request_header_count(const HttpRequest *request)
+int mhttp_request_header_count(const struct mhttp_request *req)
 {
-    const HttpHeader *header = request->headers;
-    int count = 0;
+	const struct mhttp_header *hdr;
+	int count = 0;
 
-    while (header) {
-        count++;
-        header = header->next;
-    }
+	for (hdr = req->headers; hdr; hdr = hdr->next)
+		count++;
 
-    return count;
+	return count;
 }
 
-const char *http_request_get_header(const HttpRequest *request, const char *name)
+const char *mhttp_request_get_header(const struct mhttp_request *req, const char *name)
 {
-    const HttpHeader *header = request->headers;
+	const struct mhttp_header *hdr;
+       
+	for (hdr = req->headers; hdr; hdr = hdr->next)
+		if (!strcasecmp(hdr->name, name))
+			return hdr->value;
 
-    while (header) {
-        if (!strcasecmp(header->name, name)) {
-            return header->value;
-        }
-        header = header->next;
-    }
-
-    return NULL;
+	return NULL;
 }

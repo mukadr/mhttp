@@ -1,37 +1,38 @@
 #ifndef MHTTP_HTTP_H
 #define MHTTP_HTTP_H
 
-typedef enum HttpResult {
-    HTTP_OK,
-    HTTP_NEED_MORE_INPUT,
-    HTTP_INVALID_REQUEST,
-    HTTP_INTERNAL_ERROR
-} HttpResult;
+enum mhttp_result {
+	MHTTP_OK,
+	MHTTP_NEED_MORE_INPUT,
+	MHTTP_INVALID_REQUEST,
+	MHTTP_ERROR
+};
 
-typedef enum HttpMethod {
-    HTTP_METHOD_GET,
-    HTTP_METHOD_HEAD,
-    HTTP_METHOD_POST,
-    HTTP_METHOD_PUT,
-    HTTP_METHOD_DELETE,
-    HTTP_METHOD_OPTIONS,
-    HTTP_METHOD_PATCH
-} HttpMethod;
+enum mhttp_method {
+	MHTTP_METHOD_GET,
+	MHTTP_METHOD_HEAD,
+	MHTTP_METHOD_POST,
+	MHTTP_METHOD_PUT,
+	MHTTP_METHOD_DELETE,
+	MHTTP_METHOD_OPTIONS,
+	MHTTP_METHOD_PATCH
+};
 
-typedef enum HttpStatusCode {
-    HTTP_STATUS_OK                    = 200,
-    HTTP_STATUS_BAD_REQUEST           = 400,
-    HTTP_STATUS_NOT_FOUND             = 404,
-    HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
-} HttpStatusCode;
+enum mhttp_status_code {
+	MHTTP_STATUS_OK = 200,
+	MHTTP_STATUS_BAD_REQUEST = 400,
+	MHTTP_STATUS_NOT_FOUND = 404,
+	MHTTP_STATUS_INTERNAL_SERVER_ERROR = 500
+};
 
-#define HTTP_HEADER_NAME_SIZE 256
-#define HTTP_HEADER_VALUE_SIZE 256
+#define MHTTP_MAX_HEADERS 100
+#define MHTTP_HEADER_NAME_SIZE 256
+#define MHTTP_HEADER_VALUE_SIZE 256
 
-typedef struct HttpHeader {
-    char name[HTTP_HEADER_NAME_SIZE];
-    char value[HTTP_HEADER_VALUE_SIZE];
-    struct HttpHeader *next;
-} HttpHeader;
+struct mhttp_header {
+	struct mhttp_header *next;
+	char name[MHTTP_HEADER_NAME_SIZE];
+	char value[MHTTP_HEADER_VALUE_SIZE];
+};
 
 #endif // MHTTP_HTTP_H

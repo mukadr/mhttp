@@ -4,158 +4,146 @@
 
 #include "response.h"
 
-HttpResponse *http_response_new(void)
+struct mhttp_response *mhttp_response_new(void)
 {
-    HttpResponse *response = calloc(1, sizeof(*response));
-    if (!response) {
-        return NULL;
-    }
+	struct mhttp_response *rsp;
+	
+	rsp = calloc(1, sizeof(*rsp));
+	if (!rsp)
+		return NULL;
 
-    http_response_set_status(response, HTTP_STATUS_OK);
-    return response;
+	mhttp_response_set_status(rsp, MHTTP_STATUS_OK);
+	return rsp;
 }
 
-void http_response_free(HttpResponse *response)
+void mhttp_response_free(struct mhttp_response *rsp)
 {
-    if (!response) {
-        return;
-    }
+	struct mhttp_header *hdr, *n;
 
-    HttpHeader *header = response->headers;
+	if (!rsp)
+		return;
 
-    while (header) {
-        HttpHeader *next = header->next;
-        free(header);
-        header = next;
-    }
+	hdr = rsp->headers;
+	while (hdr) {
+		n = hdr->next;
+		free(hdr);
+		hdr = n;
+	}
 
-    free(response->body);
-    free(response);
+	free(rsp->body);
+	free(rsp);
 }
 
-void http_response_set_status(HttpResponse *response, int code)
+void mhttp_response_set_status(struct mhttp_response *rsp, int code)
 {
-    response->status_code = code;
+	rsp->status_code = code;
 
-    switch (code) {
-        case HTTP_STATUS_OK:
-            response->reason = "OK";
-            break;
-        case HTTP_STATUS_BAD_REQUEST:
-            response->reason = "Bad Request";
-            break;
-        case HTTP_STATUS_NOT_FOUND:
-            response->reason = "Not Found";
-            break;
-        case HTTP_STATUS_INTERNAL_SERVER_ERROR:
-            response->reason = "Internal Server Error";
-            break;
-        default:
-            response->reason = "Unknown";
-            break;
-    }
+	switch (code) {
+	case MHTTP_STATUS_OK:
+		rsp->reason = "OK";
+		break;
+	case MHTTP_STATUS_BAD_REQUEST:
+		rsp->reason = "Bad Request";
+		break;
+	case MHTTP_STATUS_NOT_FOUND:
+		rsp->reason = "Not Found";
+		break;
+	case MHTTP_STATUS_INTERNAL_SERVER_ERROR:
+		rsp->reason = "Internal Server Error";
+		break;
+	default:
+		rsp->reason = "Unknown";
+	}
 }
 
-HttpResult http_response_set_header(HttpResponse *response, const char *name, const char *value)
+enum mhttp_result mhttp_response_set_header(struct mhttp_response *rsp, const char *name, const char *value)
 {
-    size_t name_len = strlen(name);
-    if (name_len >= HTTP_HEADER_NAME_SIZE) {
-        return HTTP_INVALID_REQUEST;
-    }
+	struct mhttp_header *hdr;
+	size_t name_len, value_len;
+       
+	name_len = strlen(name);
+	if (name_len >= MHTTP_HEADER_NAME_SIZE)
+		return MHTTP_INVALID_REQUEST;
 
-    size_t value_len = strlen(value);
-    if (value_len >= HTTP_HEADER_VALUE_SIZE) {
-        return HTTP_INVALID_REQUEST;
-    }
+	value_len = strlen(value);
+	if (value_len >= MHTTP_HEADER_VALUE_SIZE)
+		return MHTTP_INVALID_REQUEST;
 
-    HttpHeader *header = calloc(1, sizeof(*header));
-    if (!header) {
-        return HTTP_INTERNAL_ERROR;
-    }
+	hdr = calloc(1, sizeof(*hdr));
+	if (!hdr)
+		return MHTTP_ERROR;
 
-    memcpy(header->name, name, name_len + 1);
-    memcpy(header->value, value, value_len + 1);
-
-    header->next = response->headers;
-    response->headers = header;
-
-    return HTTP_OK;
+	memcpy(hdr->name, name, name_len + 1);
+	memcpy(hdr->value, value, value_len + 1);
+	hdr->next = rsp->headers;
+	rsp->headers = hdr;
+	return MHTTP_OK;
 }
 
-HttpResult http_response_set_body(HttpResponse *response, const char *body)
+enum mhttp_result mhttp_response_set_body(struct mhttp_response *rsp, const char *body)
 {
-    HttpResult ret = HTTP_OK;
+	enum mhttp_result res = MHTTP_OK;
+	size_t len;
+	char cl[32];
 
-    free(response->body);
-    response->body = NULL;
-    response->body_length = 0;
+	free(rsp->body);
+	rsp->body = NULL;
+	rsp->body_length = 0;
 
-    if (body) {
-        size_t len = strlen(body);
+	if (body) {
+		len = strlen(body);
+		rsp->body = malloc(len + 1);
+		if (!rsp->body)
+			return MHTTP_ERROR;
 
-        response->body = malloc(len + 1);
-        if (!response->body) {
-            return HTTP_INTERNAL_ERROR;
-        }
-        memcpy(response->body, body, len + 1);
-        response->body_length = len;
+		memcpy(rsp->body, body, len + 1);
+		rsp->body_length = len;
 
-        if (response->body_length > 0) {
-            char cl[32];
+		if (rsp->body_length > 0) {
+			snprintf(cl, sizeof(cl), "%zu", rsp->body_length);
+			res = mhttp_response_set_header(rsp, "Content-Length", cl);
+		}
+	}
 
-            snprintf(cl, sizeof(cl), "%zu", response->body_length);
-            ret = http_response_set_header(response, "Content-Length", cl);
-        }
-    }
-
-    return ret;
+	return res;
 }
 
-HttpResult http_response_write(HttpResponse *response, HttpWriteBuf *buffer)
+enum mhttp_result mhttp_response_write(struct mhttp_response *rsp, struct mhttp_wbuf *wb)
 {
-    char status_line[64];
-    size_t slen;
-    size_t written;
-    int ret;
+	struct mhttp_header *hdr;
+	char status_line[64];
+	size_t slen;
+	size_t written;
+	int ret;
 
-    ret = snprintf(status_line, sizeof(status_line), "HTTP/1.1 %d %s\r\n", response->status_code, response->reason);
-    if (ret < 0) {
-        return HTTP_INTERNAL_ERROR;
-    }
+	ret = snprintf(status_line, sizeof(status_line), "HTTP/1.1 %d %s\r\n", rsp->status_code, rsp->reason);
+	if (ret < 0)
+		return MHTTP_ERROR;
 
-    slen = (size_t)ret;
+	slen = (size_t)ret;
+	written = mhttp_wbuf_write(wb, status_line);
+	if (written < slen)
+		return MHTTP_ERROR;
 
-    written = http_writebuf_write(buffer, status_line);
-    if (written < slen) {
-        return HTTP_INTERNAL_ERROR;
-    }
+	for (hdr = rsp->headers; hdr; hdr = hdr->next) {
+		char line[520];
+		size_t llen;
 
-    HttpHeader *header = response->headers;
+		llen = (size_t)snprintf(line, sizeof(line), "%s: %s\r\n", hdr->name, hdr->value);
+		written = mhttp_wbuf_write(wb, line);
+		if (written < llen)
+			return MHTTP_ERROR;
+	}
 
-    while (header) {
-        char line[520];
-        size_t llen;
+	written = mhttp_wbuf_write(wb, "\r\n");
+	if (written < 2)
+		return MHTTP_ERROR;
 
-        llen = (size_t)snprintf(line, sizeof(line), "%s: %s\r\n", header->name, header->value);
+	if (rsp->body) {
+		written = mhttp_wbuf_write(wb, rsp->body);
+		if (written < rsp->body_length)
+			return MHTTP_ERROR;
+	}
 
-        written = http_writebuf_write(buffer, line);
-        if (written < llen) {
-            return HTTP_INTERNAL_ERROR;
-        }
-        header = header->next;
-    }
-
-    written = http_writebuf_write(buffer, "\r\n");
-    if (written < 2) {
-        return HTTP_INTERNAL_ERROR;
-    }
-
-    if (response->body) {
-        written = http_writebuf_write(buffer, response->body);
-        if (written < response->body_length) {
-            return HTTP_INTERNAL_ERROR;
-        }
-    }
-
-    return HTTP_OK;
+	return MHTTP_OK;
 }
