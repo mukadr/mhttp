@@ -3,8 +3,7 @@
 
 #include <stdbool.h>
 
-struct mhttp_slice
-{
+struct mhttp_slice {
 	char *begin;
 	char *end; // 1 after the last valid byte
 };
