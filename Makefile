@@ -17,7 +17,7 @@ endif
 OBJS  = rbuf.o
 OBJS += request.o
 OBJS += response.o
-OBJS += slice.o
+OBJS += span.o
 OBJS += wbuf.o
 OBJS += test.o
 OBJS += test-rbuf.o

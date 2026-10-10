@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "rbuf.h"
-#include "slice.h"
+#include "span.h"
 
 static void test_zero_size_rbuf(void)
 {
@@ -16,7 +16,7 @@ static void test_zero_size_rbuf(void)
 static void test_rbuf1(void)
 {
 	struct mhttp_rbuf *rb = mhttp_rbuf_new(1);
-	struct mhttp_slice line;
+	struct mhttp_span line;
 	size_t ret;
 
 	ret = mhttp_rbuf_feed(rb, "abc");
@@ -26,7 +26,7 @@ static void test_rbuf1(void)
 	assert(rb->end == rb->buf + 1);
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_empty(&line));
+	assert(mhttp_span_empty(&line));
 
 	ret = mhttp_rbuf_feed(rb, "\n");
 	assert(ret == 0);
@@ -43,10 +43,10 @@ static void test_rbuf1(void)
 	assert(rb->end == rb->buf + 1);
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "\n"));
+	assert(mhttp_span_eq(&line, "\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_empty(&line));
+	assert(mhttp_span_empty(&line));
 
 	mhttp_rbuf_free(rb);
 }
@@ -54,7 +54,7 @@ static void test_rbuf1(void)
 static void test_rbuf2(void)
 {
 	struct mhttp_rbuf *rb = mhttp_rbuf_new(2);
-	struct mhttp_slice line;
+	struct mhttp_span line;
 	size_t ret;
 
 	ret = mhttp_rbuf_feed(rb, "abc");
@@ -65,7 +65,7 @@ static void test_rbuf2(void)
 	assert(rb->end == rb->buf + 2);
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_empty(&line));
+	assert(mhttp_span_empty(&line));
 
 	ret = mhttp_rbuf_feed(rb, "a\n");
 	assert(ret == 0);
@@ -80,10 +80,10 @@ static void test_rbuf2(void)
 	assert(rb->end == rb->buf + 2);
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "a\n"));
+	assert(mhttp_span_eq(&line, "a\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_empty(&line));
+	assert(mhttp_span_empty(&line));
 
 	ret = mhttp_rbuf_feed(rb, "\n\n");
 	assert(ret == 2);
@@ -93,13 +93,13 @@ static void test_rbuf2(void)
 	assert(rb->end == rb->buf + 2);
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "\n"));
+	assert(mhttp_span_eq(&line, "\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "\n"));
+	assert(mhttp_span_eq(&line, "\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_empty(&line));
+	assert(mhttp_span_empty(&line));
 
 	mhttp_rbuf_free(rb);
 }
@@ -107,7 +107,7 @@ static void test_rbuf2(void)
 static void test_rbuf3(void)
 {
 	struct mhttp_rbuf *rb = mhttp_rbuf_new(128);
-	struct mhttp_slice line;
+	struct mhttp_span line;
 	size_t ret;
 
 	ret = mhttp_rbuf_feed(
@@ -122,19 +122,19 @@ static void test_rbuf3(void)
 	assert(rb->end == rb->buf + 78);
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "GET /index.html HTTP/1.0\r\n"));
+	assert(mhttp_span_eq(&line, "GET /index.html HTTP/1.0\r\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "Host: www.example.com\r\n"));
+	assert(mhttp_span_eq(&line, "Host: www.example.com\r\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "User-Agent: TestAgent/1.0\r\n"));
+	assert(mhttp_span_eq(&line, "User-Agent: TestAgent/1.0\r\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "\r\n"));
+	assert(mhttp_span_eq(&line, "\r\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_empty(&line));
+	assert(mhttp_span_empty(&line));
 
 	mhttp_rbuf_free(rb);
 }
@@ -142,7 +142,7 @@ static void test_rbuf3(void)
 static void test_rbuf4(void)
 {
 	struct mhttp_rbuf *rb = mhttp_rbuf_new(128);
-	struct mhttp_slice line;
+	struct mhttp_span line;
 	size_t ret;
 
 	ret = mhttp_rbuf_feed(
@@ -155,10 +155,10 @@ static void test_rbuf4(void)
 	assert(rb->end == rb->buf + 35);
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "GET /index.html HTTP/1.0\r\n"));
+	assert(mhttp_span_eq(&line, "GET /index.html HTTP/1.0\r\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_empty(&line));
+	assert(mhttp_span_empty(&line));
 
 	ret = mhttp_rbuf_feed(
 		rb,
@@ -171,16 +171,16 @@ static void test_rbuf4(void)
 	assert(rb->end == rb->buf + 52);
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "Host: www.example.com\r\n"));
+	assert(mhttp_span_eq(&line, "Host: www.example.com\r\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "User-Agent: TestAgent/1.0\r\n"));
+	assert(mhttp_span_eq(&line, "User-Agent: TestAgent/1.0\r\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_eq(&line, "\r\n"));
+	assert(mhttp_span_eq(&line, "\r\n"));
 
 	line = mhttp_rbuf_next_line(rb);
-	assert(mhttp_slice_empty(&line));
+	assert(mhttp_span_empty(&line));
 
 	mhttp_rbuf_free(rb);
 }

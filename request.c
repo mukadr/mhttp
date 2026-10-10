@@ -38,17 +38,17 @@ void mhttp_request_free(struct mhttp_request *req)
 	free(req);
 }
 
-static enum mhttp_result parse_uri(struct mhttp_request *req, struct mhttp_slice *line)
+static enum mhttp_result parse_uri(struct mhttp_request *req, struct mhttp_span *line)
 {
 	size_t len = 0;
 	int c;
 
 	for (;;) {
-		c = mhttp_slice_peek(line);
+		c = mhttp_span_peek(line);
 		if (c == '\r' || c == '\n' || c == -1)
 			break;
 
-		mhttp_slice_skip(line);
+		mhttp_span_skip(line);
 
 		if (c == ' ')
 			break;
@@ -66,34 +66,34 @@ static enum mhttp_result parse_uri(struct mhttp_request *req, struct mhttp_slice
 	return len ? MHTTP_OK : MHTTP_INVALID_REQUEST;
 }
 
-static enum mhttp_result parse_http_version(struct mhttp_request *req, struct mhttp_slice *line)
+static enum mhttp_result parse_http_version(struct mhttp_request *req, struct mhttp_span *line)
 {
 	int c;
 
-	if (mhttp_slice_match(line, "HTTP/")) {
-		c = mhttp_slice_peek(line);
+	if (mhttp_span_match(line, "HTTP/")) {
+		c = mhttp_span_peek(line);
 		if (c < '0' || c > '9')
 			return MHTTP_INVALID_REQUEST;
 
 		req->version = c - '0';
 
-		c = mhttp_slice_next(line);
+		c = mhttp_span_next(line);
 		if (c != '.')
 			return MHTTP_INVALID_REQUEST;
 
-		c = mhttp_slice_next(line);
+		c = mhttp_span_next(line);
 		if (c < '0' || c > '9')
 			return MHTTP_INVALID_REQUEST;
 
 		req->version = (req->version * 10) + (c - '0');
 
-		mhttp_slice_skip(line);
-	} else if (mhttp_slice_eol(line)) {
+		mhttp_span_skip(line);
+	} else if (mhttp_span_eol(line)) {
 		// HTTP/0.9 (no version present)
 		req->version = 9;
 	}
 
-	if (!mhttp_slice_eol(line))
+	if (!mhttp_span_eol(line))
 		return MHTTP_INVALID_REQUEST;
 
 	return MHTTP_OK;
@@ -101,26 +101,26 @@ static enum mhttp_result parse_http_version(struct mhttp_request *req, struct mh
 
 static enum mhttp_result parse_method(struct mhttp_request *req, struct mhttp_rbuf *rb)
 {
-	struct mhttp_slice line;
+	struct mhttp_span line;
 	enum mhttp_result res;
 	
 	line = mhttp_rbuf_next_line(rb);
-	if (mhttp_slice_empty(&line))
+	if (mhttp_span_empty(&line))
 		return MHTTP_NEED_MORE_INPUT;
 
-	if (mhttp_slice_match(&line, "GET "))
+	if (mhttp_span_match(&line, "GET "))
 		req->method = MHTTP_METHOD_GET;
-	else if (mhttp_slice_match(&line, "HEAD "))
+	else if (mhttp_span_match(&line, "HEAD "))
 		req->method = MHTTP_METHOD_HEAD;
-	else if (mhttp_slice_match(&line, "POST "))
+	else if (mhttp_span_match(&line, "POST "))
 		req->method = MHTTP_METHOD_POST;
-	else if (mhttp_slice_match(&line, "PUT "))
+	else if (mhttp_span_match(&line, "PUT "))
 		req->method = MHTTP_METHOD_PUT;
-	else if (mhttp_slice_match(&line, "DELETE "))
+	else if (mhttp_span_match(&line, "DELETE "))
 		req->method = MHTTP_METHOD_DELETE;
-	else if (mhttp_slice_match(&line, "OPTIONS "))
+	else if (mhttp_span_match(&line, "OPTIONS "))
 		req->method = MHTTP_METHOD_OPTIONS;
-	else if (mhttp_slice_match(&line, "PATCH "))
+	else if (mhttp_span_match(&line, "PATCH "))
 		req->method = MHTTP_METHOD_PATCH;
 	else
 		return MHTTP_INVALID_REQUEST;
@@ -132,7 +132,7 @@ static enum mhttp_result parse_method(struct mhttp_request *req, struct mhttp_rb
 	return parse_http_version(req, &line);
 }
 
-static enum mhttp_result parse_header(struct mhttp_request *req, struct mhttp_slice *line, struct mhttp_header **out_hdr)
+static enum mhttp_result parse_header(struct mhttp_request *req, struct mhttp_span *line, struct mhttp_header **out_hdr)
 {
 	struct mhttp_header *hdr;
 	int c;
@@ -144,7 +144,7 @@ static enum mhttp_result parse_header(struct mhttp_request *req, struct mhttp_sl
 
 	name_len = 0;
 	for (;;) {
-		c = mhttp_slice_peek(line);
+		c = mhttp_span_peek(line);
 		if (c == ':')
 			break;
 		if (c == '\r' || c == '\n' || c == -1 || c == 0)
@@ -154,18 +154,18 @@ static enum mhttp_result parse_header(struct mhttp_request *req, struct mhttp_sl
 			goto invalid;
 
 		hdr->name[name_len++] = (char)c;
-		mhttp_slice_skip(line);
+		mhttp_span_skip(line);
 	}
 	if (name_len == 0)
 		goto invalid;
 
-	c = mhttp_slice_next(line);
+	c = mhttp_span_next(line);
 	if (c != ' ')
 		goto invalid;
 
 	value_len = 0;
 	for (;;) {
-		c = mhttp_slice_next(line);
+		c = mhttp_span_next(line);
 		if (c == '\r' || c == '\n' || c == -1)
 			break;
 		if (c == 0)
@@ -177,7 +177,7 @@ static enum mhttp_result parse_header(struct mhttp_request *req, struct mhttp_sl
 		hdr->value[value_len++] = (char)c;
 	}
 
-	if (!mhttp_slice_eol(line))
+	if (!mhttp_span_eol(line))
 		goto invalid;
 
 	*out_hdr = hdr;
@@ -190,7 +190,7 @@ invalid:
 
 static enum mhttp_result parse_headers(struct mhttp_request *req, struct mhttp_rbuf *rb)
 {
-	struct mhttp_slice line;
+	struct mhttp_span line;
 	struct mhttp_header *hdr;
 	enum mhttp_result res;
 	int count;
@@ -201,10 +201,10 @@ static enum mhttp_result parse_headers(struct mhttp_request *req, struct mhttp_r
 		hdr = NULL;
 
 		line = mhttp_rbuf_next_line(rb);
-		if (mhttp_slice_empty(&line))
+		if (mhttp_span_empty(&line))
 			return MHTTP_NEED_MORE_INPUT;
 
-		if (mhttp_slice_eol(&line))
+		if (mhttp_span_eol(&line))
 			break;
 
 		if (count >= MHTTP_MAX_HEADERS)
@@ -270,17 +270,17 @@ static int parse_hex_digit(int c)
 	return -1;
 }
 
-static int parse_chunk_size(struct mhttp_slice *line)
+static int parse_chunk_size(struct mhttp_span *line)
 {
 	int size = 0;
 	int c, d;
 
 	for (;;) {
-		c = mhttp_slice_peek(line);
+		c = mhttp_span_peek(line);
 		d = parse_hex_digit(c);
 		if (d < 0)
 			break;
-		mhttp_slice_skip(line);
+		mhttp_span_skip(line);
 		size = (size * 16) + d;
 	}
 
@@ -289,7 +289,7 @@ static int parse_chunk_size(struct mhttp_slice *line)
 
 static size_t mhttp_request_read_chunked_body(struct mhttp_request *req, struct mhttp_rbuf *rb, void *dst, size_t len)
 {
-	struct mhttp_slice line;
+	struct mhttp_span line;
 	size_t total = 0, available, to_copy;
 	int size;
 	char *out = dst;
@@ -305,7 +305,7 @@ static size_t mhttp_request_read_chunked_body(struct mhttp_request *req, struct 
 
 		if (req->chunk_size == CHUNK_NEED_HEADER) {
 			line = mhttp_rbuf_next_line(rb);
-			if (mhttp_slice_empty(&line))
+			if (mhttp_span_empty(&line))
 				break;
 
 			size = parse_chunk_size(&line);
@@ -319,10 +319,10 @@ static size_t mhttp_request_read_chunked_body(struct mhttp_request *req, struct 
 
 		if (req->chunk_size == CHUNK_TRAILER) {
 			line = mhttp_rbuf_next_line(rb);
-			if (mhttp_slice_empty(&line))
+			if (mhttp_span_empty(&line))
 				break;
 
-			if (mhttp_slice_eol(&line))
+			if (mhttp_span_eol(&line))
 				req->chunk_size = CHUNK_BODY_DONE;
 
 			continue;
@@ -330,7 +330,7 @@ static size_t mhttp_request_read_chunked_body(struct mhttp_request *req, struct 
 
 		if (req->chunk_size == CHUNK_NEED_CRLF) {
 			line = mhttp_rbuf_next_line(rb);
-			if (mhttp_slice_empty(&line))
+			if (mhttp_span_empty(&line))
 				break;
 
 			req->chunk_size = CHUNK_NEED_HEADER;

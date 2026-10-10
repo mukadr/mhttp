@@ -52,9 +52,9 @@ size_t mhttp_rbuf_feed(struct mhttp_rbuf *rb, const char *str)
 	return to_read;
 }
 
-struct mhttp_slice mhttp_rbuf_next_line(struct mhttp_rbuf *rb)
+struct mhttp_span mhttp_rbuf_next_line(struct mhttp_rbuf *rb)
 {
-	struct mhttp_slice line = { NULL, NULL };
+	struct mhttp_span line = { NULL, NULL };
 	char *ptr;
 
 	ptr = memchr(rb->pos, '\n', rb->end - rb->pos);
