@@ -6,17 +6,6 @@
 
 #include "test-request.h"
 
-// Bypass null checking from mhttp_rbuf_feed
-static void rbuf_write_raw(struct mhttp_rbuf *rb, const void *data, size_t len)
-{
-	size_t remaining = rb->end - rb->pos;
-
-	memmove(rb->buf, rb->pos, remaining);
-	memcpy(rb->buf + remaining, data, len);
-	rb->pos = rb->buf;
-	rb->end = rb->buf + remaining + len;
-}
-
 static void test_request_with_malformed_content(void)
 {
 	struct mhttp_rbuf *rb = mhttp_rbuf_new(512);
@@ -106,9 +95,10 @@ static void test_request_with_null_byte_in_uri(void)
 {
 	struct mhttp_rbuf *rb = mhttp_rbuf_new(64);
 	struct mhttp_request *req = mhttp_request_new();
-	static const char r[] = "GET /pa\x00th HTTP/1.1\r\n\r\n";
+	static const char r[] = "GET /pa\0th HTTP/1.1\r\n\r\n";
 
-	rbuf_write_raw(rb, r, sizeof(r) - 1);
+	memcpy(rb->buf, r, sizeof(r) - 1);
+	rb->end = rb->buf + sizeof(r) - 1;
 
 	assert(mhttp_request_parse(req, rb) == MHTTP_INVALID_REQUEST);
 
@@ -120,9 +110,10 @@ static void test_request_with_null_byte_in_header_name(void)
 {
 	struct mhttp_rbuf *rb = mhttp_rbuf_new(64);
 	struct mhttp_request *req = mhttp_request_new();
-	static const char r[] = "GET / HTTP/1.1\r\nNa\x00me: value\r\n\r\n";
+	static const char r[] = "GET / HTTP/1.1\r\nNa\0me: value\r\n\r\n";
 
-	rbuf_write_raw(rb, r, sizeof(r) - 1);
+	memcpy(rb->buf, r, sizeof(r) - 1);
+	rb->end = rb->buf + sizeof(r) - 1;
 
 	assert(mhttp_request_parse(req, rb) == MHTTP_INVALID_REQUEST);
 
@@ -134,9 +125,10 @@ static void test_request_with_null_byte_in_header_value(void)
 {
 	struct mhttp_rbuf *rb = mhttp_rbuf_new(64);
 	struct mhttp_request *req = mhttp_request_new();
-	static const char r[] = "GET / HTTP/1.1\r\nName: va\x00lue\r\n\r\n";
+	static const char r[] = "GET / HTTP/1.1\r\nName: va\0lue\r\n\r\n";
 
-	rbuf_write_raw(rb, r, sizeof(r) - 1);
+	memcpy(rb->buf, r, sizeof(r) - 1);
+	rb->end = rb->buf + sizeof(r) - 1;
 
 	assert(mhttp_request_parse(req, rb) == MHTTP_INVALID_REQUEST);
 
