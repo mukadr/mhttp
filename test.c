@@ -5,10 +5,10 @@
 
 int main()
 {
-    test_rbuf();
-    test_wbuf();
-    test_request();
-    test_response();
+	test_rbuf();
+	test_wbuf();
+	test_request();
+	test_response();
 
-    return 0;
+	return 0;
 }
